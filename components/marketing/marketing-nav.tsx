@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/app/theme-toggle";
 import { ROUTES, SITE } from "@/lib/constants";
 
 const NAV_LINKS = [
@@ -49,7 +48,6 @@ export function MarketingNav() {
         </div>
 
         <div className="flex items-center gap-3">
-          <ThemeToggle />
           <Link
             href={ROUTES.signIn}
             className="hidden whitespace-nowrap text-sm text-dim transition-colors hover:text-ink sm:inline"

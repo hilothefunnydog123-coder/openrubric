@@ -25,6 +25,15 @@ const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  webpack: (config, { dev }) => {
+    // Silence webpack's filesystem-cache "Serializing big strings" perf notices
+    // in dev. These come from large vendor bundles (recharts, framer-motion),
+    // are purely informational, and don't affect builds. Errors still surface.
+    if (dev) {
+      config.infrastructureLogging = { level: "error" };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

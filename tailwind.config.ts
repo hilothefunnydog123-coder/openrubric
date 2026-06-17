@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 /**
  * OpenRubric design system.
@@ -104,15 +105,20 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(14px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        shimmer: {
+          "0%": { backgroundPosition: "200% 0" },
+          "100%": { backgroundPosition: "-200% 0" },
+        },
       },
       animation: {
         blink: "blink 1.1s step-end infinite",
         "pulse-dot": "pulse-dot 0.8s ease-in-out infinite",
         floatup: "floatup 0.5s ease-out both",
+        shimmer: "shimmer 2.2s linear infinite",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

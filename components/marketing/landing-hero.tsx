@@ -20,11 +20,11 @@ export function LandingHero() {
       {/* hero copy */}
       <div className="container-marketing relative pb-10 pt-[84px]">
         <Eyebrow tone="accent" className="mb-6 tracking-[0.16em]">
-          Open Source Judging
+          Open Source
         </Eyebrow>
         <div className="grid items-end gap-12 lg:grid-cols-[1.35fr_1fr]">
           <h1 className="max-w-[14ch] font-serif text-[clamp(40px,5.4vw,74px)] font-normal leading-[1.02] tracking-[-0.015em]">
-            Judge hackathons with a rubric everyone can trust.
+            Judge hackathons with a system everyone can trust.
           </h1>
           <div className="pb-2">
             <p className="mb-7 max-w-[42ch] text-[17px] leading-[1.55] text-dim">

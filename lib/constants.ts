@@ -12,6 +12,7 @@ export const ROUTES = {
   docs: "/docs",
   signIn: "/sign-in",
   signUp: "/sign-up",
+  verify: "/verify",
   organize: "/organize",
   organizerImport: "/organizer/import",
   organizerDashboard: "/dashboard/organizer",

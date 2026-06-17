@@ -5,6 +5,7 @@ import { WorkflowStrip } from "@/components/marketing/workflow-strip";
 import { DarkProductSection } from "@/components/marketing/dark-product-section";
 import { ReviewSignals } from "@/components/marketing/review-signals";
 import { FinalCta } from "@/components/marketing/final-cta";
+import { Reveal } from "@/components/ui/reveal";
 
 const JUDGING_ROOMS = [
   {
@@ -48,30 +49,42 @@ export default function HomePage() {
     <>
       <MarketingNav />
       <main>
+        {/* Hero is intentionally not wrapped in Reveal — its preview panel uses a
+            position:fixed maximize overlay that a lingering transform would break. */}
         <LandingHero />
 
-        <FeatureGrid
-          id="product"
-          eyebrow="Built for real judging rooms"
-          heading="Everything a judging room needs, and nothing it doesn't."
-          items={JUDGING_ROOMS}
-          columns={3}
-        />
+        <Reveal>
+          <FeatureGrid
+            id="product"
+            eyebrow="Built for real judging rooms"
+            heading="Everything a judging room needs, and nothing it doesn't."
+            items={JUDGING_ROOMS}
+            columns={3}
+          />
+        </Reveal>
 
-        <WorkflowStrip />
+        <Reveal>
+          <WorkflowStrip />
+        </Reveal>
 
-        <DarkProductSection id="docs" />
+        <Reveal>
+          <DarkProductSection id="docs" />
+        </Reveal>
 
-        <ReviewSignals />
+        <Reveal>
+          <ReviewSignals />
+        </Reveal>
 
-        <FeatureGrid
-          id="opensource"
-          eyebrow="Open Source By Design"
-          heading="Transparent, self-hostable, and yours to keep."
-          items={OPEN_SOURCE}
-          columns={4}
-          headingClassName="max-w-[20ch]"
-        />
+        <Reveal>
+          <FeatureGrid
+            id="opensource"
+            eyebrow="Open Source By Design"
+            heading="Transparent, self-hostable, and yours to keep."
+            items={OPEN_SOURCE}
+            columns={4}
+            headingClassName="max-w-[20ch]"
+          />
+        </Reveal>
 
         <FinalCta />
       </main>

@@ -1,26 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { MailCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ThemeToggle } from "@/components/app/theme-toggle";
-import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { TechIcon } from "@/components/ui/tech-icon";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { signInSchema, signUpSchema, type SignInValues, type SignUpValues } from "@/lib/validators";
 import type { Role } from "@/lib/types";
-
-const DEMO_LOGINS: { label: string; hint: string; href: string }[] = [
-  { label: "Demo Organizer", hint: "set up & rank →", href: ROUTES.organizerDashboard },
-  { label: "Demo Judge", hint: "score live →", href: ROUTES.judgeDashboard },
-  { label: "Demo Participant", hint: "view status →", href: ROUTES.teamDashboard },
-];
 
 const ROLES: { value: Role; label: string }[] = [
   { value: "organizer", label: "Organizer" },
@@ -38,13 +33,13 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
   const router = useRouter();
   const isSignUp = mode === "sign-up";
 
-  // Resolved on the client only (avoids any SSR access to browser APIs).
-  const [live, setLive] = useState(false);
-  useEffect(() => setLive(isSupabaseConfigured()), []);
-
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  // After sign-up we send a verification email and switch to a "check your inbox"
+  // panel. demoLink is only set when no SMTP is configured (so the flow still works).
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [demoLink, setDemoLink] = useState<string | null>(null);
 
   const signIn = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -56,6 +51,31 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
   });
 
   const role = signUp.watch("role");
+
+  async function onOAuth(provider: "google" | "github") {
+    setError(null);
+    setInfo(null);
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      router.push(ROUTES.judgeDashboard); // demo mode — no backend configured
+      return;
+    }
+    setPending(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}${ROUTES.judgeDashboard}`
+            : undefined,
+      },
+    });
+    if (error) {
+      setPending(false);
+      setError(error.message);
+    }
+    // On success the browser is redirected to the provider's consent screen.
+  }
 
   async function onSignIn(values: SignInValues) {
     setError(null);
@@ -79,12 +99,37 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
     router.push(ROUTES.judgeDashboard);
   }
 
+  /** Issue + send a verification email, then switch to the "check your inbox" panel. */
+  async function requestVerification(email: string) {
+    setError(null);
+    setPending(true);
+    try {
+      const res = await fetch("/api/auth/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setPending(false);
+      if (!res.ok || !data.ok) {
+        setError(data.error || "Could not send the verification email.");
+        return;
+      }
+      setSentTo(email);
+      setDemoLink(data.demo ? data.link : null);
+    } catch {
+      setPending(false);
+      setError("Network error sending the verification email.");
+    }
+  }
+
   async function onSignUp(values: SignUpValues) {
     setError(null);
     setInfo(null);
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      router.push(ROLE_DEST[values.role]); // demo mode
+      // Demo mode: no backend auth, but still demonstrate the verification flow.
+      await requestVerification(values.email);
       return;
     }
     setPending(true);
@@ -94,7 +139,7 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
       options: {
         data: { full_name: values.fullName, role: values.role },
         emailRedirectTo:
-          typeof window !== "undefined" ? `${window.location.origin}${ROUTES.signIn}` : undefined,
+          typeof window !== "undefined" ? `${window.location.origin}${ROUTES.verify}` : undefined,
       },
     });
     setPending(false);
@@ -106,24 +151,65 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
       router.refresh();
       router.push(ROLE_DEST[values.role]);
     } else {
-      setInfo("Check your email to confirm your account, then sign in.");
+      // Account needs email confirmation — send our branded verification link too.
+      await requestVerification(values.email);
     }
   }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-canvas p-8">
-      <div className="absolute right-6 top-6">
-        <ThemeToggle />
-      </div>
       <div className="w-full max-w-[420px]">
         <Link href={ROUTES.home} className="mb-7 flex items-center justify-center text-ink">
           <Logo />
         </Link>
 
         <div className="rounded-[18px] border border-line bg-surface p-8 shadow-card">
-          <h1 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">
-            {isSignUp ? "Create your account" : "Sign in to your hackathon"}
-          </h1>
+          {sentTo ? (
+            <div className="animate-floatup py-2 text-center">
+              <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center">
+                <span className="absolute inset-0 animate-ping rounded-full bg-accent/15" />
+                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
+                  <MailCheck className="h-7 w-7" strokeWidth={1.7} />
+                </span>
+              </div>
+              <h1 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">Check your inbox</h1>
+              <p className="mb-5 text-sm leading-relaxed text-dim">
+                We sent a verification link to{" "}
+                <span className="font-medium text-ink">{sentTo}</span>. It expires in 30 minutes.
+              </p>
+              {error && <p className="mb-3 text-[12.5px] text-signal-high">{error}</p>}
+              {demoLink && (
+                <>
+                  <a
+                    href={demoLink}
+                    className="mb-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-control bg-accent px-4 py-3 text-[14px] font-medium text-white transition-colors hover:bg-accent/90"
+                  >
+                    Open verification link →
+                  </a>
+                  <p className="mb-4 font-mono text-[10.5px] text-faint">
+                    Demo mode — no SMTP configured, so the link is shown here.
+                  </p>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => requestVerification(sentTo)}
+                disabled={pending}
+                className="text-[13px] font-medium text-accent transition-opacity hover:opacity-70 disabled:opacity-50"
+              >
+                {pending ? "Resending…" : "Resend email"}
+              </button>
+              <div className="mt-5 border-t border-line-soft pt-4">
+                <Link href={ROUTES.signIn} className="text-[13px] text-dim underline">
+                  Back to sign in
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h1 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">
+                {isSignUp ? "Create your account" : "Sign in to your hackathon"}
+              </h1>
           <p className="mb-6 text-sm text-dim">
             {isSignUp
               ? "Organize, judge, or submit — pick a role to get started."
@@ -140,6 +226,34 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
               {info}
             </div>
           )}
+
+          {/* OAuth providers */}
+          <div className="mb-5 flex flex-col gap-2.5">
+            <button
+              type="button"
+              onClick={() => onOAuth("google")}
+              disabled={pending}
+              className="group flex items-center justify-center gap-2.5 rounded-control bg-accent px-4 py-3 text-[14px] font-medium text-white shadow-sm transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-60"
+            >
+              <TechIcon name="Google" className="h-[18px] w-[18px]" />
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              onClick={() => onOAuth("github")}
+              disabled={pending}
+              className="group flex items-center justify-center gap-2.5 rounded-control border border-line bg-raised px-4 py-3 text-[14px] font-medium text-ink transition-colors hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15 disabled:opacity-60"
+            >
+              <TechIcon name="GitHub" className="h-[18px] w-[18px]" />
+              Continue with GitHub
+            </button>
+          </div>
+
+          <div className="mb-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-line" />
+            <span className="font-mono text-[11px] text-faint">OR CONTINUE WITH EMAIL</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
 
           {isSignUp ? (
             <form onSubmit={signUp.handleSubmit(onSignUp)} noValidate>
@@ -198,25 +312,8 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
               </Button>
             </form>
           )}
-
-          <div className="my-[22px] flex items-center gap-3">
-            <span className="h-px flex-1 bg-line" />
-            <span className="font-mono text-[11px] text-faint">DEMO LOGIN</span>
-            <span className="h-px flex-1 bg-line" />
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            {DEMO_LOGINS.map((d) => (
-              <Link
-                key={d.label}
-                href={d.href}
-                className="flex items-center justify-between rounded-control border border-line bg-raised px-3.5 py-3 transition-colors hover:border-ink"
-              >
-                <span className="text-sm font-medium">{d.label}</span>
-                <span className="font-mono text-[11px] text-dim">{d.hint}</span>
-              </Link>
-            ))}
-          </div>
+            </>
+          )}
         </div>
 
         <div className="mt-5 text-center text-[13px] text-dim">
@@ -240,10 +337,6 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
             Back to site
           </Link>
         </div>
-
-        <p className="mt-4 text-center font-mono text-[10.5px] text-faint">
-          {live ? "● Connected to Supabase" : "○ Demo mode — no backend configured"}
-        </p>
       </div>
     </div>
   );

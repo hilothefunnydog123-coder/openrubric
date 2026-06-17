@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
-import { ThemeToggle } from "@/components/app/theme-toggle";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { DEMO_HACKATHON } from "@/lib/demo-data";
@@ -74,10 +73,6 @@ export function CleanSidebar({ role }: { role: Role }) {
       </nav>
 
       <div className="border-t border-line p-3.5">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint">Theme</span>
-          <ThemeToggle className="h-7 w-7" />
-        </div>
         <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-faint">View as</div>
         <div className="flex rounded-[9px] border border-line bg-surface p-[3px]">
           <Link

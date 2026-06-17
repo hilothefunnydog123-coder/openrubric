@@ -11,7 +11,7 @@ const schema = z.object({
   repo_url: z.string().optional(),
 });
 
-/** POST /api/ai/summary — generate a judge-facing project summary (live if OPENAI_API_KEY set). */
+/** POST /api/ai/summary — generate a judge-facing project summary (live if GITHUB_API_MODEL_KEY set). */
 export async function POST(req: Request) {
   const rl = rateLimit(clientKey(req, "ai-summary"), 20, 10_000);
   if (!rl.ok) return tooManyRequests(rl.reset);

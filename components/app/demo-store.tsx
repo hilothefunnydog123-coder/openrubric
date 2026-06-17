@@ -1,16 +1,17 @@
 "use client";
 
 /**
- * Client-side demo store.
+ * Judge scoring store.
  *
  * Holds the CURRENT judge's mutable scoring state across the whole app so the judge
  * dashboard, grading workspace, and (read-only) organizer views stay in sync as you
- * score. Seeded from lib/demo-data; lightly persisted to localStorage so a refresh
- * keeps your work. This is the seam a real Supabase backend slots into — swap these
- * setters for `judge_scores` upserts and the UI is unchanged.
+ * score. Seeded from lib/demo-data and persisted to localStorage so a refresh keeps
+ * your work.
  *
- * Autosave is a realistic state machine: any edit → "saving" → (850ms) → "saved".
- * Each judge keeps an independent record; nothing here ever overwrites another judge.
+ * Autosave is real: any edit is debounced (850ms) and POSTed to /api/scores/autosave,
+ * keyed by (submission_id, judge_id) so judges never overwrite each other. The status
+ * reflects the actual network result (saved / saving / unsaved). Submitting a final
+ * score is a real round-trip to /api/scores/submit (see grading-workspace).
  */
 
 import {
@@ -22,7 +23,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { SEED_COMMENTS, SEED_PRESENTATION, SEED_SCORES } from "@/lib/demo-data";
+import { SEED_COMMENTS, SEED_PRESENTATION, SEED_SCORES, CURRENT_JUDGE } from "@/lib/demo-data";
 import type { AutosaveStatus, PresentationMap, ScoreMap } from "@/lib/types";
 
 interface DemoContextValue {
@@ -30,28 +31,40 @@ interface DemoContextValue {
   scoresFor: (submissionId: string) => ScoreMap;
   presentationFor: (submissionId: string) => PresentationMap;
   commentFor: (submissionId: string) => string;
+  isFinalized: (submissionId: string) => boolean;
   setScore: (submissionId: string, criterionId: string, value: number) => void;
   setPresentation: (submissionId: string, key: string, value: number) => void;
   setComment: (submissionId: string, text: string) => void;
+  finalizeSubmission: (submissionId: string) => void;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
-const STORAGE_KEY = "openrubric-demo-v1";
+const STORAGE_KEY = "openrubric-scores-v1";
 
 interface Persisted {
   scores: Record<string, ScoreMap>;
   presentation: Record<string, PresentationMap>;
   comments: Record<string, string>;
+  finalized: Record<string, boolean>;
 }
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [scores, setScores] = useState<Record<string, ScoreMap>>(SEED_SCORES);
   const [presentation, setPresentation] = useState<Record<string, PresentationMap>>(SEED_PRESENTATION);
   const [comments, setComments] = useState<Record<string, string>>(SEED_COMMENTS);
+  const [finalized, setFinalized] = useState<Record<string, boolean>>({});
   const [autosave, setAutosave] = useState<AutosaveStatus>("saved");
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydrated = useRef(false);
+
+  // Latest-value refs so the debounced save always POSTs current state.
+  const scoresRef = useRef(scores);
+  const presentationRef = useRef(presentation);
+  const commentsRef = useRef(comments);
+  scoresRef.current = scores;
+  presentationRef.current = presentation;
+  commentsRef.current = comments;
 
   // Hydrate from localStorage after mount (avoids SSR mismatch).
   useEffect(() => {
@@ -62,6 +75,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         if (parsed.scores) setScores(parsed.scores);
         if (parsed.presentation) setPresentation(parsed.presentation);
         if (parsed.comments) setComments(parsed.comments);
+        if (parsed.finalized) setFinalized(parsed.finalized);
       }
     } catch {
       /* ignore corrupt storage */
@@ -75,20 +89,38 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ scores, presentation, comments } satisfies Persisted),
+        JSON.stringify({ scores, presentation, comments, finalized } satisfies Persisted),
       );
     } catch {
       /* storage may be unavailable */
     }
-  }, [scores, presentation, comments]);
-
-  const touchAutosave = useCallback(() => {
-    setAutosave("saving");
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => setAutosave("saved"), 850);
-  }, []);
+  }, [scores, presentation, comments, finalized]);
 
   useEffect(() => () => void (saveTimer.current && clearTimeout(saveTimer.current)), []);
+
+  // Debounced, real autosave to the API for one submission.
+  const scheduleSave = useCallback((submissionId: string) => {
+    setAutosave("saving");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/scores/autosave", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            submission_id: submissionId,
+            judge_id: CURRENT_JUDGE.id,
+            scores: scoresRef.current[submissionId] ?? {},
+            presentation: presentationRef.current[submissionId] ?? {},
+            comment: commentsRef.current[submissionId] ?? "",
+          }),
+        });
+        setAutosave(res.ok ? "saved" : "unsaved");
+      } catch {
+        setAutosave("unsaved");
+      }
+    }, 850);
+  }, []);
 
   const setScore = useCallback(
     (submissionId: string, criterionId: string, value: number) => {
@@ -96,9 +128,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         [submissionId]: { ...(prev[submissionId] ?? {}), [criterionId]: value },
       }));
-      touchAutosave();
+      scheduleSave(submissionId);
     },
-    [touchAutosave],
+    [scheduleSave],
   );
 
   const setPresentationValue = useCallback(
@@ -107,18 +139,22 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         [submissionId]: { ...(prev[submissionId] ?? {}), [key]: value },
       }));
-      touchAutosave();
+      scheduleSave(submissionId);
     },
-    [touchAutosave],
+    [scheduleSave],
   );
 
   const setComment = useCallback(
     (submissionId: string, text: string) => {
       setComments((prev) => ({ ...prev, [submissionId]: text }));
-      touchAutosave();
+      scheduleSave(submissionId);
     },
-    [touchAutosave],
+    [scheduleSave],
   );
+
+  const finalizeSubmission = useCallback((submissionId: string) => {
+    setFinalized((prev) => ({ ...prev, [submissionId]: true }));
+  }, []);
 
   const value = useMemo<DemoContextValue>(
     () => ({
@@ -126,11 +162,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       scoresFor: (id) => scores[id] ?? {},
       presentationFor: (id) => presentation[id] ?? {},
       commentFor: (id) => comments[id] ?? "",
+      isFinalized: (id) => Boolean(finalized[id]),
       setScore,
       setPresentation: setPresentationValue,
       setComment,
+      finalizeSubmission,
     }),
-    [autosave, scores, presentation, comments, setScore, setPresentationValue, setComment],
+    [autosave, scores, presentation, comments, finalized, setScore, setPresentationValue, setComment, finalizeSubmission],
   );
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;

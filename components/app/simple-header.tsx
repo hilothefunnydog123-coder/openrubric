@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
-import { ThemeToggle } from "@/components/app/theme-toggle";
 import { ROUTES } from "@/lib/constants";
 
 /** Light top bar for participant screens (no organizer/judge sidebar). */
@@ -21,7 +20,6 @@ export function SimpleHeader() {
           <Link href={ROUTES.signIn} className="transition-colors hover:text-ink">
             Sign out
           </Link>
-          <ThemeToggle />
         </div>
       </div>
     </header>

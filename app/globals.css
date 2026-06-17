@@ -5,11 +5,10 @@
 /*
  * OpenRubric theming.
  *
- * Light is the default; .dark on <html> flips the palette. Every app surface token
- * (canvas/surface/raised/sunken/ink/dim/faint/line/accent) is driven by a CSS
- * variable, so the whole app + marketing recolor from these ~14 values. The dark
- * "product screenshot" panels on the landing page are intentionally fixed (they read
- * as a dark app preview in either theme).
+ * Light-only. Every app surface token (canvas/surface/raised/sunken/ink/dim/faint/
+ * line/accent) is driven by a CSS variable, so the whole app + marketing recolor from
+ * these ~14 values. The dark "product screenshot" panels on the landing page are
+ * intentionally fixed (they read as a dark app preview / mockup, not the site theme).
  *
  * Fonts are injected as CSS variables by next/font in app/layout.tsx:
  *   --font-sans  → Hanken Grotesk   --font-serif → Newsreader   --font-mono → JetBrains Mono
@@ -31,21 +30,6 @@
     --accent: 37 99 235; /* restrained deep blue */
   }
 
-  .dark {
-    /* ---- dark: warm near-black, never pure #000 ---- */
-    --background: 13 14 16;
-    --surface: 23 24 27;
-    --surface-raised: 28 30 34;
-    --sunken: 33 35 39;
-    --foreground: 243 241 236;
-    --muted: 160 158 152;
-    --faint: 122 120 114;
-    --border: 39 41 46;
-    --border-soft: 32 34 38;
-    --border-softer: 29 31 35;
-    --accent: 96 142 255; /* a touch brighter for contrast on dark */
-  }
-
   * {
     @apply border-line;
   }
@@ -53,9 +37,6 @@
   html {
     scroll-behavior: smooth;
     color-scheme: light;
-  }
-  html.dark {
-    color-scheme: dark;
   }
 
   body {

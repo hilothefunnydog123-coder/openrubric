@@ -1,4 +1,5 @@
 import type { AiSummary } from "@/lib/types";
+import { TechIcon } from "@/components/ui/tech-icon";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -32,8 +33,9 @@ export function AIProjectSummaryCard({ ai }: { ai: AiSummary }) {
             {ai.tech.map((t) => (
               <span
                 key={t}
-                className="rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-dim"
+                className="inline-flex items-center gap-1.5 rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-dim"
               >
+                <TechIcon name={t} className="h-3 w-3" />
                 {t}
               </span>
             ))}

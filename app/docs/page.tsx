@@ -24,8 +24,8 @@ const ENV = [
   ["NEXT_PUBLIC_SUPABASE_ANON_KEY", "Supabase anon key for the browser client"],
   ["SUPABASE_SERVICE_ROLE_KEY", "Server-only key for imports and aggregation"],
   ["GITHUB_TOKEN", "Read-only token for live GitHub timeline scans"],
-  ["OPENAI_API_KEY", "OpenAI-compatible key for AI project summaries"],
-  ["OPENAI_BASE_URL", "Override for non-OpenAI providers (Azure, Groq, Ollama…)"],
+  ["GITHUB_API_MODEL_KEY", "GitHub Models token (free) for AI project summaries"],
+  ["OPENAI_BASE_URL", "Override the model endpoint (defaults to GitHub Models)"],
   ["AI_MODEL", "Model id, e.g. gpt-4o-mini"],
   ["NEXT_PUBLIC_APP_URL", "Public base URL of your deployment"],
 ];

@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useDemo } from "@/components/app/demo-store";
-import { ThemeToggle } from "@/components/app/theme-toggle";
 import { totalScore } from "@/lib/scoring";
 import { prettyUrl } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
-import { DEFAULT_CRITERIA } from "@/lib/demo-data";
+import { DEFAULT_CRITERIA, CURRENT_JUDGE } from "@/lib/demo-data";
 import type { ProjectView } from "@/lib/types";
 
 import { AutosaveIndicator } from "./autosave-indicator";
@@ -29,12 +28,37 @@ function ext(url: string | null): string {
 }
 
 export function GradingWorkspace({ project }: { project: ProjectView }) {
-  const { scoresFor, commentFor, setComment } = useDemo();
+  const { scoresFor, presentationFor, commentFor, setComment, isFinalized, finalizeSubmission } =
+    useDemo();
   const [tab, setTab] = useState("rubric");
-  const [submitted, setSubmitted] = useState(false);
+  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "error">("idle");
 
   const total = totalScore(scoresFor(project.id), DEFAULT_CRITERIA);
   const comment = commentFor(project.id);
+  const submitted = isFinalized(project.id);
+
+  async function submitFinal() {
+    setSubmitState("submitting");
+    try {
+      const res = await fetch("/api/scores/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submission_id: project.id,
+          judge_id: CURRENT_JUDGE.id,
+          scores: scoresFor(project.id),
+          presentation: presentationFor(project.id),
+          comment: commentFor(project.id),
+          is_final: true,
+        }),
+      });
+      if (!res.ok) throw new Error(`submit failed (${res.status})`);
+      finalizeSubmission(project.id);
+      setSubmitState("idle");
+    } catch {
+      setSubmitState("error");
+    }
+  }
 
   const links = [
     { label: "Devpost", url: project.devpost_url },
@@ -61,7 +85,6 @@ export function GradingWorkspace({ project }: { project: ProjectView }) {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <ThemeToggle className="hidden h-8 w-8 sm:inline-flex" />
           <div className="hidden sm:block">
             <AutosaveIndicator variant="inline" />
           </div>
@@ -69,8 +92,21 @@ export function GradingWorkspace({ project }: { project: ProjectView }) {
             {total}
             <span className="font-medium text-faint"> / 100</span>
           </span>
-          <Button onClick={() => setSubmitted(true)} disabled={submitted} className="whitespace-nowrap">
-            {submitted ? "Final score submitted ✓" : "Submit final score"}
+          {submitState === "error" && (
+            <span className="hidden font-mono text-[11px] text-signal-high sm:inline">
+              Couldn’t submit — retry
+            </span>
+          )}
+          <Button
+            onClick={submitFinal}
+            disabled={submitted || submitState === "submitting"}
+            className="whitespace-nowrap"
+          >
+            {submitted
+              ? "Final score submitted ✓"
+              : submitState === "submitting"
+                ? "Submitting…"
+                : "Submit final score"}
           </Button>
         </div>
       </div>

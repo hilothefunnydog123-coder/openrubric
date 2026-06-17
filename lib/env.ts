@@ -17,5 +17,5 @@ export const features = {
   supabase: Boolean(env.supabaseUrl && env.supabaseAnonKey),
   /** Server-only — these read process.env directly where used. */
   github: Boolean(process.env.GITHUB_TOKEN),
-  ai: Boolean(process.env.OPENAI_API_KEY),
+  ai: Boolean(process.env.GITHUB_API_MODEL_KEY || process.env.OPENAI_API_KEY),
 } as const;

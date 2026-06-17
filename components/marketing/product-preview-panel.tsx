@@ -1,193 +1,504 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { TechIcon } from "@/components/ui/tech-icon";
 
 /**
- * The hero "infrastructure UI" panel — a realistic OpenRubric workspace, not a fake
- * dashboard. Dark rounded panel: browser bar → search with blinking caret → selected
- * project (Lighthouse) + AI summary + rubric score, with track ranking and a GitHub
- * timeline mini on the right.
+ * The hero "infrastructure UI" panel — a realistic, *interactive* OpenRubric
+ * workspace. Dark rounded panel that behaves like a real macOS window:
+ *
+ *   • Search filters the track list by project / team / participant, and selecting
+ *     a project repaints the left column (summary + rubric) and the GitHub timeline.
+ *   • The three traffic-light dots work like the macOS title bar:
+ *       red = close, yellow = minimize (collapse to the bar), green = zoom (maximize).
+ *   • ⌘K (or Ctrl+K) focuses the search field.
+ *
+ * It stays visually dark in the (now light-only) site — it reads as a product
+ * screenshot / mockup, not the site theme.
  */
 
-const RUBRIC_BARS = [
-  { name: "Innovation", score: "18/20", pct: "90%" },
-  { name: "Technical", score: "22/25", pct: "88%" },
-  { name: "Functionality", score: "17/20", pct: "85%" },
-  { name: "Design / UX", score: "13/15", pct: "87%" },
+type Project = {
+  id: string;
+  rank: string;
+  name: string;
+  team: string;
+  track: string;
+  members: string[];
+  score: number;
+  clean: boolean;
+  summary: string;
+  tags: string[];
+  rubric: { name: string; score: string; pct: string }[];
+  timeline: { label: string; meta: string }[];
+  timelineNote: string;
+};
+
+const PROJECTS: Project[] = [
+  {
+    id: "lighthouse",
+    rank: "01",
+    name: "Lighthouse",
+    team: "Team Beacon",
+    track: "Health AI",
+    members: ["Ava Reyes", "Daniel Cho", "Priya Nair"],
+    score: 87,
+    clean: true,
+    summary:
+      "A triage assistant for rural clinics that routes patient intake photos to the right specialist. Built on a fine-tuned vision model with an offline-first PWA front end.",
+    tags: ["Next.js", "PyTorch", "Supabase"],
+    rubric: [
+      { name: "Innovation", score: "18/20", pct: "90%" },
+      { name: "Technical", score: "22/25", pct: "88%" },
+      { name: "Functionality", score: "17/20", pct: "85%" },
+      { name: "Design / UX", score: "13/15", pct: "87%" },
+    ],
+    timeline: [
+      { label: "Repo created", meta: "Feb 14 · 9:12 AM · within window" },
+      { label: "First commit", meta: "Feb 14 · 10:40 AM · 3 contributors" },
+      { label: "Last commit", meta: "Feb 16 · 5:55 PM · before deadline" },
+    ],
+    timelineNote: "All commits within event window",
+  },
+  {
+    id: "mediscan",
+    rank: "02",
+    name: "MediScan",
+    team: "Team Vital",
+    track: "Health AI",
+    members: ["Liam O'Brien", "Sofia Alvarez"],
+    score: 83,
+    clean: true,
+    summary:
+      "An OCR pipeline that turns handwritten prescriptions into structured, pharmacist-checkable orders — with a confidence score and a human-in-the-loop review queue.",
+    tags: ["FastAPI", "Tesseract", "Postgres"],
+    rubric: [
+      { name: "Innovation", score: "16/20", pct: "80%" },
+      { name: "Technical", score: "21/25", pct: "84%" },
+      { name: "Functionality", score: "17/20", pct: "85%" },
+      { name: "Design / UX", score: "12/15", pct: "80%" },
+    ],
+    timeline: [
+      { label: "Repo created", meta: "Feb 14 · 8:40 AM · within window" },
+      { label: "First commit", meta: "Feb 14 · 11:20 AM · 2 contributors" },
+      { label: "Last commit", meta: "Feb 16 · 6:48 PM · before deadline" },
+    ],
+    timelineNote: "All commits within event window",
+  },
+  {
+    id: "campusloop",
+    rank: "03",
+    name: "CampusLoop",
+    team: "Team Quad",
+    track: "Health AI",
+    members: ["Mateo Rossi", "Hana Kim", "Jordan Blake"],
+    score: 79,
+    clean: false,
+    summary:
+      "A peer mental-health check-in app for universities that nudges at-risk students toward campus resources, with anonymized cohort trends for counseling centers.",
+    tags: ["React Native", "Node", "Redis"],
+    rubric: [
+      { name: "Innovation", score: "17/20", pct: "85%" },
+      { name: "Technical", score: "18/25", pct: "72%" },
+      { name: "Functionality", score: "16/20", pct: "80%" },
+      { name: "Design / UX", score: "12/15", pct: "80%" },
+    ],
+    timeline: [
+      { label: "Repo created", meta: "Feb 10 · 2:05 PM · before window" },
+      { label: "First commit", meta: "Feb 14 · 9:55 AM · 3 contributors" },
+      { label: "Last commit", meta: "Feb 16 · 5:12 PM · before deadline" },
+    ],
+    timelineNote: "Repo created before the event window",
+  },
+  {
+    id: "studyforge",
+    rank: "04",
+    name: "StudyForge",
+    team: "Team Anvil",
+    track: "Health AI",
+    members: ["Noah Patel", "Emma Lindqvist"],
+    score: 76,
+    clean: true,
+    summary:
+      "A spaced-repetition tutor that generates rubric-aligned practice questions from a syllabus and tracks mastery per learning objective for med-school prep.",
+    tags: ["Svelte", "Bun", "SQLite"],
+    rubric: [
+      { name: "Innovation", score: "15/20", pct: "75%" },
+      { name: "Technical", score: "19/25", pct: "76%" },
+      { name: "Functionality", score: "15/20", pct: "75%" },
+      { name: "Design / UX", score: "12/15", pct: "80%" },
+    ],
+    timeline: [
+      { label: "Repo created", meta: "Feb 14 · 10:02 AM · within window" },
+      { label: "First commit", meta: "Feb 14 · 12:15 PM · 2 contributors" },
+      { label: "Last commit", meta: "Feb 16 · 4:30 PM · before deadline" },
+    ],
+    timelineNote: "All commits within event window",
+  },
 ];
 
-const TRACK_RANK = [
-  { rank: "01", name: "Lighthouse", score: "87", active: true },
-  { rank: "02", name: "MediScan", score: "83", active: false },
-  { rank: "03", name: "CampusLoop", score: "79", active: false },
-  { rank: "04", name: "StudyForge", score: "76", active: false },
-];
-
-const TIMELINE = [
-  { label: "Repo created", meta: "Feb 14 · 9:12 AM · within window" },
-  { label: "First commit", meta: "Feb 14 · 10:40 AM · 3 contributors" },
-  { label: "Last commit", meta: "Feb 16 · 5:55 PM · before deadline" },
-];
+type WindowState = "open" | "minimized" | "closed";
 
 export function ProductPreviewPanel() {
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState(PROJECTS[0].id);
+  const [windowState, setWindowState] = useState<WindowState>("open");
+  const [maximized, setMaximized] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // ⌘K / Ctrl+K focuses the search field, like the real app.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (windowState !== "open") setWindowState("open");
+        inputRef.current?.focus();
+      }
+      if (e.key === "Escape" && maximized) setMaximized(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [windowState, maximized]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return PROJECTS;
+    return PROJECTS.filter((p) =>
+      [p.name, p.team, p.track, ...p.members].some((f) => f.toLowerCase().includes(q)),
+    );
+  }, [query]);
+
+  // Keep the selection valid against the current filter: if the selected project
+  // is filtered out, fall back to the first match so the left column stays in sync.
+  const selected =
+    filtered.find((p) => p.id === selectedId) ?? filtered[0] ?? PROJECTS.find((p) => p.id === selectedId)!;
+
+  const bodyVisible = windowState === "open";
+
   return (
-    <div className="overflow-hidden rounded-panel border border-line-dark bg-panel-900 shadow-panel">
-      {/* browser bar */}
-      <div className="flex items-center gap-2 border-b border-line-darker bg-panel-700 px-[18px] py-3">
-        <span className="h-[11px] w-[11px] rounded-full bg-[#2A2A2A]" />
-        <span className="h-[11px] w-[11px] rounded-full bg-[#2A2A2A]" />
-        <span className="h-[11px] w-[11px] rounded-full bg-[#2A2A2A]" />
-        <div className="flex flex-1 justify-center">
-          <div className="rounded-md border border-[#1A1A1A] bg-[#080808] px-4 py-[5px] font-mono text-[12px] text-[#6B6B6B]">
-            openrubric.org
-          </div>
-        </div>
-        <span className="font-mono text-[11px] text-[#4A4A4A]">demo</span>
-      </div>
-
-      {/* panel body */}
-      <div className="relative p-[22px]">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-50"
-          style={{
-            backgroundImage:
-              "linear-gradient(#121212 1px,transparent 1px),linear-gradient(90deg,#121212 1px,transparent 1px)",
-            backgroundSize: "34px 34px",
-          }}
-          aria-hidden
+    <>
+      {maximized && (
+        <button
+          type="button"
+          aria-label="Exit maximized preview"
+          onClick={() => setMaximized(false)}
+          className="fixed inset-0 z-40 cursor-default bg-black/60 backdrop-blur-sm"
         />
+      )}
 
-        {/* search */}
-        <div className="relative mb-[18px] flex items-center gap-2.5 rounded-[11px] border border-line-dark bg-panel px-4 py-3">
-          <Search className="h-[15px] w-[15px] text-dim" strokeWidth={1.6} />
-          <span className="font-mono text-[13.5px] text-[#9A9A9A]">Search project, team, or participant…</span>
-          <span className="inline-block h-4 w-[1.5px] animate-blink bg-accent" />
-          <span className="flex-1" />
-          <span className="rounded-[5px] border border-line-dark px-[7px] py-[2px] font-mono text-[11px] text-dim">
-            ⌘K
-          </span>
+      <div
+        className={cn(
+          "overflow-hidden rounded-panel border border-line-dark bg-panel-900 shadow-panel transition-all duration-300",
+          maximized
+            ? "fixed inset-3 z-50 flex flex-col sm:inset-8 lg:inset-12"
+            : "relative",
+        )}
+      >
+        {/* browser bar */}
+        <div className="flex items-center gap-2 border-b border-line-darker bg-panel-700 px-[18px] py-3">
+          <div className="group flex items-center gap-2">
+            <WindowDot
+              color="#FF5F57"
+              glyph="×"
+              label="Close preview"
+              onClick={() => setWindowState("closed")}
+            />
+            <WindowDot
+              color="#FEBC2E"
+              glyph="–"
+              label="Minimize preview"
+              onClick={() => setWindowState((s) => (s === "minimized" ? "open" : "minimized"))}
+            />
+            <WindowDot
+              color="#28C840"
+              glyph={maximized ? "−" : "+"}
+              label={maximized ? "Restore preview" : "Maximize preview"}
+              onClick={() => {
+                if (windowState !== "open") setWindowState("open");
+                setMaximized((m) => !m);
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => windowState !== "open" && setWindowState("open")}
+            className="flex flex-1 cursor-default justify-center"
+            aria-label={windowState !== "open" ? "Reopen preview" : "openrubric.org"}
+          >
+            <div className="rounded-md border border-[#1A1A1A] bg-[#080808] px-4 py-[5px] font-mono text-[12px] text-[#6B6B6B]">
+              openrubric.org
+            </div>
+          </button>
         </div>
 
-        <div className="relative grid grid-cols-1 gap-4 md:grid-cols-[1.5fr_1fr]">
-          {/* left column */}
-          <div className="flex flex-col gap-3.5">
-            {/* selected project */}
-            <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-[18px] font-semibold tracking-[-0.01em] text-white">Lighthouse</div>
-                  <div className="mt-1 font-mono text-[11.5px] text-[#7A7A7A]">Team Beacon · Health AI</div>
-                </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(79,178,134,0.22)] bg-[rgba(79,178,134,0.08)] px-[11px] py-[5px] font-mono text-[11px] text-signal-clean-dot">
-                  <span className="h-1.5 w-1.5 rounded-full bg-signal-clean-dot" />
-                  Clean timeline
-                </div>
-              </div>
-            </div>
+        {windowState === "closed" ? (
+          <ClosedState onReopen={() => setWindowState("open")} />
+        ) : (
+          <div
+            className={cn(
+              "relative overflow-hidden transition-[max-height,opacity] duration-300",
+              maximized && "flex-1 overflow-y-auto",
+              bodyVisible ? "max-h-[1400px] opacity-100" : "max-h-0 opacity-0",
+            )}
+          >
+            <div className="relative p-[22px]">
+              <div
+                className="pointer-events-none absolute inset-0 opacity-50"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(#121212 1px,transparent 1px),linear-gradient(90deg,#121212 1px,transparent 1px)",
+                  backgroundSize: "34px 34px",
+                }}
+                aria-hidden
+              />
 
-            {/* AI summary */}
-            <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
-              <div className="mb-2.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-accent">
-                AI Summary
-              </div>
-              <p className="text-[13.5px] leading-relaxed text-[#C4C4C4]">
-                A triage assistant for rural clinics that routes patient intake photos to the right
-                specialist. Built on a fine-tuned vision model with an offline-first PWA front end.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-[7px]">
-                {["Next.js", "PyTorch", "Supabase"].map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-md border border-line-dark px-[9px] py-[3px] font-mono text-[11px] text-[#9A9A9A]"
+              {/* search */}
+              <div className="relative mb-[18px] flex items-center gap-2.5 rounded-[11px] border border-line-dark bg-panel px-4 py-3 focus-within:border-accent/60">
+                <Search className="h-[15px] w-[15px] text-dim" strokeWidth={1.6} />
+                <input
+                  ref={inputRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search project, team, or participant…"
+                  className="flex-1 bg-transparent font-mono text-[13.5px] text-white placeholder:text-[#9A9A9A] focus:outline-none"
+                  aria-label="Search project, team, or participant"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="font-mono text-[11px] text-dim transition-colors hover:text-white"
+                    aria-label="Clear search"
                   >
-                    {t}
-                  </span>
-                ))}
+                    clear
+                  </button>
+                )}
+                <span className="rounded-[5px] border border-line-dark px-[7px] py-[2px] font-mono text-[11px] text-dim">
+                  ⌘K
+                </span>
               </div>
-            </div>
 
-            {/* rubric score */}
-            <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#7A7A7A]">
-                  Rubric Score
-                </div>
-                <div className="text-[15px] font-semibold">
-                  <span className="text-white">87</span>
-                  <span className="text-dim"> / 100</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-[9px]">
-                {RUBRIC_BARS.map((row) => (
-                  <div key={row.name} className="flex items-center gap-[11px]">
-                    <span className="w-24 flex-shrink-0 text-[12.5px] text-[#B4B4B4]">{row.name}</span>
-                    <div className="h-[5px] flex-1 overflow-hidden rounded-[3px] bg-[#181818]">
-                      <div className="h-full rounded-[3px] bg-accent" style={{ width: row.pct }} />
+              <div className="relative grid grid-cols-1 gap-4 md:grid-cols-[1.5fr_1fr]">
+                {/* left column */}
+                <div className="flex flex-col gap-3.5">
+                  {/* selected project */}
+                  <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-[18px] font-semibold tracking-[-0.01em] text-white">
+                          {selected.name}
+                        </div>
+                        <div className="mt-1 font-mono text-[11.5px] text-[#7A7A7A]">
+                          {selected.team} · {selected.track}
+                        </div>
+                      </div>
+                      {selected.clean ? (
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(79,178,134,0.22)] bg-[rgba(79,178,134,0.08)] px-[11px] py-[5px] font-mono text-[11px] text-signal-clean-dot">
+                          <span className="h-1.5 w-1.5 rounded-full bg-signal-clean-dot" />
+                          Clean timeline
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(217,164,65,0.24)] bg-[rgba(217,164,65,0.09)] px-[11px] py-[5px] font-mono text-[11px] text-[#D9A441]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
+                          Flagged
+                        </div>
+                      )}
                     </div>
-                    <span className="w-11 text-right font-mono text-[11.5px] text-[#8A8A8A]">{row.score}</span>
                   </div>
-                ))}
+
+                  {/* AI summary */}
+                  <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
+                    <div className="mb-2.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-accent">
+                      AI Summary
+                    </div>
+                    <p className="text-[13.5px] leading-relaxed text-[#C4C4C4]">{selected.summary}</p>
+                    <div className="mt-3 flex flex-wrap gap-[7px]">
+                      {selected.tags.map((t) => (
+                        <span
+                          key={t}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-line-dark px-[9px] py-[3px] font-mono text-[11px] text-[#9A9A9A]"
+                        >
+                          <TechIcon name={t} className="h-[13px] w-[13px]" />
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* rubric score */}
+                  <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#7A7A7A]">
+                        Rubric Score
+                      </div>
+                      <div className="text-[15px] font-semibold">
+                        <span className="text-white">{selected.score}</span>
+                        <span className="text-dim"> / 100</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-[9px]">
+                      {selected.rubric.map((row) => (
+                        <div key={row.name} className="flex items-center gap-[11px]">
+                          <span className="w-24 flex-shrink-0 text-[12.5px] text-[#B4B4B4]">
+                            {row.name}
+                          </span>
+                          <div className="h-[5px] flex-1 overflow-hidden rounded-[3px] bg-[#181818]">
+                            <div
+                              className="h-full rounded-[3px] bg-accent transition-all duration-500"
+                              style={{ width: row.pct }}
+                            />
+                          </div>
+                          <span className="w-11 text-right font-mono text-[11.5px] text-[#8A8A8A]">
+                            {row.score}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* right column */}
+                <div className="flex flex-col gap-3.5">
+                  {/* track rank */}
+                  <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
+                    <div className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#7A7A7A]">
+                      Track · {selected.track}
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {filtered.length === 0 ? (
+                        <div className="px-[9px] py-3 font-mono text-[12px] text-[#7A7A7A]">
+                          No projects match “{query}”.
+                        </div>
+                      ) : (
+                        filtered.map((t) => {
+                          const active = t.id === selected.id;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setSelectedId(t.id)}
+                              className="flex items-center gap-[11px] rounded-lg px-[9px] py-2 text-left transition-colors hover:bg-white/[0.04]"
+                              style={{ background: active ? "rgba(37,99,235,0.10)" : "transparent" }}
+                            >
+                              <span
+                                className="w-[18px] font-mono text-[12px]"
+                                style={{ color: active ? "#2563EB" : "#6A6A6A" }}
+                              >
+                                {t.rank}
+                              </span>
+                              <span
+                                className="flex-1 text-[13px]"
+                                style={{
+                                  color: active ? "#fff" : "#C4C4C4",
+                                  fontWeight: active ? 600 : 400,
+                                }}
+                              >
+                                {t.name}
+                              </span>
+                              <span className="font-mono text-[12px] text-[#8A8A8A]">{t.score}</span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* timeline mini */}
+                  <div className="flex-1 rounded-[13px] border border-line-dark bg-panel-800 p-4">
+                    <div className="mb-3.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#7A7A7A]">
+                      GitHub Timeline
+                    </div>
+                    <div className="flex flex-col">
+                      {selected.timeline.map((ev) => (
+                        <div key={ev.label} className="flex gap-[11px]">
+                          <div className="flex flex-col items-center">
+                            <span
+                              className="mt-[3px] h-2 w-2 rounded-full"
+                              style={{ background: selected.clean ? undefined : "#D9A441" }}
+                            >
+                              {selected.clean && (
+                                <span className="block h-full w-full rounded-full bg-signal-clean-dot" />
+                              )}
+                            </span>
+                            <span className="w-px flex-1 bg-line-dark" />
+                          </div>
+                          <div className="pb-3.5">
+                            <div className="text-[12.5px] text-[#C4C4C4]">{ev.label}</div>
+                            <div className="mt-0.5 font-mono text-[10.5px] text-[#6A6A6A]">{ev.meta}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div
+                      className="mt-0.5 inline-flex items-center gap-1.5 font-mono text-[11px]"
+                      style={{ color: selected.clean ? undefined : "#D9A441" }}
+                    >
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ background: selected.clean ? undefined : "#D9A441" }}
+                      >
+                        {selected.clean && (
+                          <span className="block h-full w-full rounded-full bg-signal-clean-dot" />
+                        )}
+                      </span>
+                      <span className={selected.clean ? "text-signal-clean-dot" : undefined}>
+                        {selected.timelineNote}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* right column */}
-          <div className="flex flex-col gap-3.5">
-            {/* track rank */}
-            <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
-              <div className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#7A7A7A]">
-                Track · Health AI
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {TRACK_RANK.map((t) => (
-                  <div
-                    key={t.rank}
-                    className="flex items-center gap-[11px] rounded-lg px-[9px] py-2"
-                    style={{ background: t.active ? "rgba(37,99,235,0.10)" : "transparent" }}
-                  >
-                    <span
-                      className="w-[18px] font-mono text-[12px]"
-                      style={{ color: t.active ? "#2563EB" : "#6A6A6A" }}
-                    >
-                      {t.rank}
-                    </span>
-                    <span
-                      className="flex-1 text-[13px]"
-                      style={{ color: t.active ? "#fff" : "#C4C4C4", fontWeight: t.active ? 600 : 400 }}
-                    >
-                      {t.name}
-                    </span>
-                    <span className="font-mono text-[12px] text-[#8A8A8A]">{t.score}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* timeline mini */}
-            <div className="flex-1 rounded-[13px] border border-line-dark bg-panel-800 p-4">
-              <div className="mb-3.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#7A7A7A]">
-                GitHub Timeline
-              </div>
-              <div className="flex flex-col">
-                {TIMELINE.map((ev) => (
-                  <div key={ev.label} className="flex gap-[11px]">
-                    <div className="flex flex-col items-center">
-                      <span className="mt-[3px] h-2 w-2 rounded-full bg-signal-clean-dot" />
-                      <span className="w-px flex-1 bg-line-dark" />
-                    </div>
-                    <div className="pb-3.5">
-                      <div className="text-[12.5px] text-[#C4C4C4]">{ev.label}</div>
-                      <div className="mt-0.5 font-mono text-[10.5px] text-[#6A6A6A]">{ev.meta}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-0.5 inline-flex items-center gap-1.5 font-mono text-[11px] text-signal-clean-dot">
-                <span className="h-1.5 w-1.5 rounded-full bg-signal-clean-dot" />
-                All commits within event window
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
+    </>
+  );
+}
+
+/** A macOS traffic-light dot — colored, with a glyph that appears on group hover. */
+function WindowDot({
+  color,
+  glyph,
+  label,
+  onClick,
+}: {
+  color: string;
+  glyph: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="flex h-[11px] w-[11px] items-center justify-center rounded-full leading-none transition-transform active:scale-90"
+      style={{ background: color }}
+    >
+      <span className="text-[9px] font-bold text-black/55 opacity-0 transition-opacity group-hover:opacity-100">
+        {glyph}
+      </span>
+    </button>
+  );
+}
+
+/** Body shown when the window is "closed" — a quiet placeholder with a reopen action. */
+function ClosedState({ onReopen }: { onReopen: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <div className="font-mono text-[12px] uppercase tracking-[0.14em] text-[#6A6A6A]">
+        Preview closed
+      </div>
+      <button
+        type="button"
+        onClick={onReopen}
+        className="rounded-[9px] border border-line-dark bg-panel-800 px-4 py-2 text-[13px] text-[#C4C4C4] transition-colors hover:border-accent/60 hover:text-white"
+      >
+        Reopen window
+      </button>
     </div>
   );
 }

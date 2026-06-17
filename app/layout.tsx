@@ -63,13 +63,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${sans.variable} ${serif.variable} ${mono.variable}`}
     >
       <body>
-        {/* No-flash theme: set .dark before paint. Default is light. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{if(localStorage.getItem('openrubric-theme')==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})()",
-          }}
-        />
         <DemoProvider>{children}</DemoProvider>
       </body>
     </html>

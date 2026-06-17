@@ -1,9 +1,12 @@
 /**
  * AI project summaries via an OpenAI-compatible provider.
  *
- * Works with OpenAI, Azure, Together, Groq, Ollama, or any /chat/completions API by
- * setting OPENAI_BASE_URL + AI_MODEL. With no OPENAI_API_KEY, generateSummary()
- * returns the deterministic demo summary so the grading screen always renders.
+ * Defaults to GitHub Models (free tier): set GITHUB_API_MODEL_KEY to a GitHub PAT
+ * with the `models` permission and it calls https://models.inference.ai.azure.com
+ * with the cheap, free gpt-4o-mini model. Any other OpenAI-compatible /chat/completions
+ * API also works by overriding OPENAI_BASE_URL + AI_MODEL (and providing OPENAI_API_KEY).
+ * With no key, generateSummary() returns the deterministic demo summary so the grading
+ * screen always renders.
  *
  * The summary is an aid for a human judge — "What it does / Who it helps / How it
  * works / Strongest part / Worth asking about" — never a score or a verdict.
@@ -12,8 +15,17 @@
 import { DEMO_PROJECTS, SUGGESTED_QUESTIONS } from "./demo-data";
 import type { AiSummary } from "./types";
 
+// GitHub Models (free) is the default; OPENAI_API_KEY remains a fallback for any
+// other OpenAI-compatible provider.
+const AI_DEFAULT_BASE_URL = "https://models.inference.ai.azure.com";
+const AI_DEFAULT_MODEL = "gpt-4o-mini";
+
+function aiKey(): string | undefined {
+  return process.env.GITHUB_API_MODEL_KEY || process.env.OPENAI_API_KEY;
+}
+
 export function isAiConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY);
+  return Boolean(aiKey());
 }
 
 export interface SummaryInput {
@@ -46,11 +58,11 @@ interface RawSummary {
 }
 
 export async function generateSummary(input: SummaryInput): Promise<AiSummary> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = aiKey();
   if (!apiKey) return demoSummaryFor(input.submissionId, input);
 
-  const baseUrl = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
-  const model = process.env.AI_MODEL || "gpt-4o-mini";
+  const baseUrl = (process.env.OPENAI_BASE_URL || AI_DEFAULT_BASE_URL).replace(/\/$/, "");
+  const model = process.env.AI_MODEL || AI_DEFAULT_MODEL;
 
   try {
     const res = await fetch(`${baseUrl}/chat/completions`, {
@@ -111,7 +123,7 @@ export function demoSummaryFor(submissionId: string, input?: Partial<SummaryInpu
     how: "See the demo and repository for details.",
     tech: [],
     strengths_json: ["Connect an AI provider to generate a full summary."],
-    weaknesses_json: ["Running in demo mode — set OPENAI_API_KEY for live summaries."],
+    weaknesses_json: ["Running in demo mode — set GITHUB_API_MODEL_KEY for live summaries."],
     suggested_questions_json: SUGGESTED_QUESTIONS,
     created_at: new Date().toISOString(),
   };
