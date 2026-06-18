@@ -470,18 +470,14 @@ export const DEMO_REVIEW_CASES: ReviewCase[] = [
 // Each judge keeps an independent record; this is only Priya's.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const SEED_SCORES: Record<string, ScoreMap> = {
-  lighthouse: { innovation: 18, technical: 22, functionality: 17, design: 13, impact: 9, presentation: 8 },
-  studyforge: { innovation: 14, technical: 16, functionality: 0, design: 0, impact: 0, presentation: 0 },
-};
+// Your own judge record starts empty — a clean slate so you score every project
+// yourself. The leaderboard/aggregate data the rest of the app shows comes from the
+// projects' own fields (othersAvg), so the demo stays rich while your scoring is fresh.
+export const SEED_SCORES: Record<string, ScoreMap> = {};
 
-export const SEED_PRESENTATION: Record<string, PresentationMap> = {
-  lighthouse: { clarity: 4, demo_quality: 5, technical_explanation: 4, answers: 4, confidence: 4 },
-};
+export const SEED_PRESENTATION: Record<string, PresentationMap> = {};
 
-export const SEED_COMMENTS: Record<string, string> = {
-  lighthouse: "Strong offline story. Want to confirm clinical eval before ranking #1.",
-};
+export const SEED_COMMENTS: Record<string, string> = {};
 
 export const PRESENTATION_FIELDS: { key: keyof PresentationMap | string; label: string }[] = [
   { key: "clarity", label: "Clarity of pitch" },
@@ -490,6 +486,19 @@ export const PRESENTATION_FIELDS: { key: keyof PresentationMap | string; label: 
   { key: "answers", label: "Answers to questions" },
   { key: "confidence", label: "Team confidence" },
 ];
+
+// Screenshots imported from Devpost (demo captions; real images come from the scrape).
+export const DEMO_SCREENSHOTS: Record<string, string[]> = {
+  lighthouse: ["Intake capture", "Referral suggestion", "Offline sync status", "Clinic dashboard"],
+  mediscan: ["Prescription scan", "Confidence review", "Pharmacist queue"],
+  studyforge: ["Syllabus import", "Practice question", "Mastery tracker"],
+  campusloop: ["Daily check-in", "Resource nudge", "Cohort trends"],
+  codepilot: ["Inline suggestion", "Repo context", "Command palette"],
+};
+
+/** Demo screenshots for a submission, with a sensible generic fallback. */
+export const getScreenshots = (submissionId: string): string[] =>
+  DEMO_SCREENSHOTS[submissionId] ?? ["Home", "Core flow", "Results"];
 
 // Convenience lookups
 export const getProject = (id: string): ProjectView | undefined =>

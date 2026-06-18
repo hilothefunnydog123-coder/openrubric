@@ -20,7 +20,7 @@ export function FinalCta() {
         </h2>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
-            <Link href={ROUTES.organize}>Organize a hackathon</Link>
+            <Link href={ROUTES.signUp}>Get started</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <a href={SITE.githubUrl} target="_blank" rel="noreferrer">

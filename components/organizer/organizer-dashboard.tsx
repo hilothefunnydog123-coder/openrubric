@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/app/top-nav";
 import { SubmissionsTable } from "./submissions-table";
 import { ReviewQueue } from "./review-queue";
+import { LiveImport } from "./live-import";
 import { ROUTES } from "@/lib/constants";
-import { DEMO_PROJECTS, DEMO_REVIEW_CASES } from "@/lib/demo-data";
 import { suggestedOverallWinner, trackWinners } from "@/lib/scoring";
+import type { ProjectView, ReviewCase } from "@/lib/types";
 
 function Metric({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
@@ -18,16 +19,21 @@ function Metric({ label, value, danger }: { label: string; value: string; danger
   );
 }
 
-export function OrganizerDashboard() {
-  const projects = DEMO_PROJECTS;
-  const reviewCases = DEMO_REVIEW_CASES;
+export function OrganizerDashboard({
+  projects,
+  hackathonId,
+}: {
+  projects: ProjectView[];
+  hackathonId: string | null;
+}) {
+  const reviewCases: ReviewCase[] = [];
 
   const doneSlots = projects.reduce((a, p) => a + p.judgesDone, 0);
   const totalSlots = projects.reduce((a, p) => a + p.judgesTotal, 0);
   const needsReview = projects.filter(
     (p) => p.scan.review_priority === "needs" || p.scan.review_priority === "high",
   ).length;
-  const progressPct = Math.round((doneSlots / totalSlots) * 100);
+  const progressPct = totalSlots > 0 ? Math.round((doneSlots / totalSlots) * 100) : 0;
 
   const leaders = trackWinners(projects, reviewCases);
   const { eligibleWinner } = suggestedOverallWinner(projects, reviewCases);
@@ -71,7 +77,20 @@ export function OrganizerDashboard() {
 
         {/* table + rail */}
         <div className="grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[1.65fr_1fr]">
-          <SubmissionsTable projects={projects} reviewCases={reviewCases} />
+          <div className="flex flex-col gap-[22px]">
+            {hackathonId && <LiveImport hackathonId={hackathonId} />}
+            {projects.length === 0 ? (
+              <div className="rounded-[14px] border border-dashed border-line bg-surface px-5 py-10 text-center">
+                <div className="text-[15px] font-semibold">No projects yet</div>
+                <p className="mx-auto mt-1.5 max-w-[42ch] text-[13px] text-dim">
+                  Import a Devpost gallery or upload a CSV above — projects scan and summarize as
+                  they come in.
+                </p>
+              </div>
+            ) : (
+              <SubmissionsTable projects={projects} reviewCases={reviewCases} />
+            )}
+          </div>
 
           <div className="flex flex-col gap-[18px]">
             <div className="rounded-[14px] border border-line bg-surface p-[18px]">

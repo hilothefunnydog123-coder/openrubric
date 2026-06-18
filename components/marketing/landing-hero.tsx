@@ -33,7 +33,7 @@ export function LandingHero() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild>
-                <Link href={ROUTES.organize}>Organize a hackathon</Link>
+                <Link href={ROUTES.signUp}>Get started</Link>
               </Button>
               <Button asChild variant="outline">
                 <Link href={ROUTES.judgeDashboard}>Try judge demo →</Link>

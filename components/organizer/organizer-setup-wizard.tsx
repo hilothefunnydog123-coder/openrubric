@@ -25,13 +25,13 @@ const SUBS = [
   "Add judges and decide what each one scores.",
 ];
 
-const FIELDS: { key: string; label: string; span2?: boolean }[] = [
+const FIELDS: { key: string; label: string; span2?: boolean; type?: string }[] = [
   { key: "name", label: "Hackathon name", span2: true },
   { key: "website_url", label: "Website URL" },
   { key: "devpost_url", label: "Devpost URL" },
-  { key: "start_time", label: "Start time" },
-  { key: "submission_deadline", label: "Submission deadline" },
-  { key: "judging_deadline", label: "Judging deadline", span2: true },
+  { key: "start_time", label: "Start time", type: "datetime-local" },
+  { key: "submission_deadline", label: "Submission deadline", type: "datetime-local" },
+  { key: "judging_deadline", label: "Judging deadline", span2: true, type: "datetime-local" },
 ];
 
 export function OrganizerSetupWizard({ initialStep = 1 }: { initialStep?: number }) {
@@ -43,10 +43,12 @@ export function OrganizerSetupWizard({ initialStep = 1 }: { initialStep?: number
     name: "Bay Area AI Hacks 2026",
     website_url: "bayareaaihacks.org",
     devpost_url: "bayareaaihacks.devpost.com",
-    start_time: "Feb 14, 2026 · 9:00 AM",
-    submission_deadline: "Feb 16, 2026 · 6:00 PM",
-    judging_deadline: "Feb 17, 2026 · 8:00 PM",
+    start_time: "2026-02-14T09:00",
+    submission_deadline: "2026-02-16T18:00",
+    judging_deadline: "2026-02-17T20:00",
   });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [criteria, setCriteria] = useState<DraftCriterion[]>(
     DEFAULT_CRITERIA.map((c) => ({ name: c.name, max: c.max_points })),
   );
@@ -55,9 +57,40 @@ export function OrganizerSetupWizard({ initialStep = 1 }: { initialStep?: number
 
   const isLast = step === 5;
 
-  function next() {
-    if (isLast) router.push(ROUTES.organizerDashboard);
-    else setStep((s) => s + 1);
+  async function next() {
+    if (!isLast) {
+      setStep((s) => s + 1);
+      return;
+    }
+    // Final step → persist the hackathon (+ tracks + rubric) to Supabase.
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/hackathons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          website_url: form.website_url,
+          devpost_url: form.devpost_url,
+          start_time: form.start_time,
+          submission_deadline: form.submission_deadline,
+          judging_deadline: form.judging_deadline,
+          tracks,
+          criteria,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setSaving(false);
+      if (!res.ok || !data.ok) {
+        setError(typeof data.error === "string" ? data.error : "Couldn't create the hackathon.");
+        return;
+      }
+      router.push(ROUTES.organizerDashboard);
+    } catch {
+      setSaving(false);
+      setError("Network error creating the hackathon.");
+    }
   }
 
   return (
@@ -114,6 +147,7 @@ export function OrganizerSetupWizard({ initialStep = 1 }: { initialStep?: number
                   <Label htmlFor={f.key}>{f.label}</Label>
                   <Input
                     id={f.key}
+                    type={f.type ?? "text"}
                     value={form[f.key] ?? ""}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   />
@@ -128,16 +162,20 @@ export function OrganizerSetupWizard({ initialStep = 1 }: { initialStep?: number
           {step === 5 && <JudgeInviteForm judges={judges} onChange={setJudges} />}
         </div>
 
+        {error && <p className="mt-3 text-[13px] text-signal-high">{error}</p>}
+
         {/* footer nav */}
         <div className="mt-5 flex items-center justify-between">
           <Button
             variant="secondary"
             onClick={() => setStep((s) => Math.max(1, s - 1))}
-            disabled={step === 1}
+            disabled={step === 1 || saving}
           >
             ← Back
           </Button>
-          <Button onClick={next}>{isLast ? "Finish & open dashboard" : "Continue"}</Button>
+          <Button onClick={next} disabled={saving}>
+            {saving ? "Creating…" : isLast ? "Finish & open dashboard" : "Continue"}
+          </Button>
         </div>
       </div>
     </div>

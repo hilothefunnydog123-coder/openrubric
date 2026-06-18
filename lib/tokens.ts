@@ -65,3 +65,58 @@ export function verifyToken(token: string, purpose: Purpose = "email-verify"): V
   }
   return { valid: true, email: payload.e };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6-digit verification code (stateless)
+//
+// The email gets the plaintext 6-digit code. The client holds only a `token` whose
+// signature binds (payload + code) — so the token never reveals the code, and the
+// only way to produce a matching code is to read it from the email. No DB needed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function challengeFor(payloadB64: string, code: string): string {
+  return crypto.createHmac("sha256", SECRET).update(`${payloadB64}.${code}`).digest("base64url");
+}
+
+/** Returns the plaintext `code` (email it) and a `token` (give it to the client). */
+export function createEmailCode(email: string, ttlMs = CODE_TTL_MS): { code: string; token: string } {
+  const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+  const payloadB64 = b64url(
+    JSON.stringify({ e: email.toLowerCase().trim(), p: "email-code", x: Date.now() + ttlMs }),
+  );
+  return { code, token: `${payloadB64}.${challengeFor(payloadB64, code)}` };
+}
+
+export type CodeResult =
+  | { valid: true; email: string }
+  | { valid: false; reason: "malformed" | "bad-code" | "expired" };
+
+export function verifyEmailCode(token: string, code: string): CodeResult {
+  if (!token || typeof token !== "string" || !token.includes(".")) {
+    return { valid: false, reason: "malformed" };
+  }
+  const [payloadB64, challenge] = token.split(".");
+  if (!payloadB64 || !challenge) return { valid: false, reason: "malformed" };
+
+  const cleaned = (code || "").replace(/\D/g, "");
+  const expected = challengeFor(payloadB64, cleaned);
+  const a = Buffer.from(challenge);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return { valid: false, reason: "bad-code" };
+  }
+
+  let payload: { e: string; p: string; x: number };
+  try {
+    payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+  } catch {
+    return { valid: false, reason: "malformed" };
+  }
+  if (payload.p !== "email-code") return { valid: false, reason: "malformed" };
+  if (typeof payload.x !== "number" || Date.now() > payload.x) {
+    return { valid: false, reason: "expired" };
+  }
+  return { valid: true, email: payload.e };
+}

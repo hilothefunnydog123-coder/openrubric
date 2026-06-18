@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CSV_COLUMNS } from "@/lib/validators";
-import { DEMO_PROJECTS } from "@/lib/demo-data";
 
 interface ImportRow {
   project_name: string;
@@ -35,15 +34,37 @@ export function DevpostImportForm() {
   const [url, setUrl] = useState("bayareaaihacks.devpost.com");
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [note, setNote] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function importDevpost() {
-    // Demo: surface the public demo projects as if imported. Real mode posts to
-    // /api/import/devpost, which only reads public metadata and never bypasses auth.
-    setRows(
-      DEMO_PROJECTS.map((p) => ({ project_name: p.project_name, team_name: p.team_name, track: p.track })),
-    );
-    setNote(`${DEMO_PROJECTS.length} projects found from public Devpost metadata.`);
+  /** Real import: scrape public Devpost metadata via the API, fall back to CSV/manual. */
+  async function importDevpost() {
+    setImporting(true);
+    setNote("Scanning the Devpost gallery…");
+    try {
+      const res = await fetch("/api/import/devpost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setImporting(false);
+      if (!data.ok || !Array.isArray(data.projects) || data.projects.length === 0) {
+        setNote(data.fallback || "Couldn’t import automatically. Upload CSV or paste project links manually.");
+        return;
+      }
+      setRows(
+        data.projects.map((p: { project_name: string; team_name?: string; track?: string }) => ({
+          project_name: p.project_name,
+          team_name: p.team_name ?? "",
+          track: p.track ?? "",
+        })),
+      );
+      setNote(data.note || `${data.projects.length} projects imported from Devpost.`);
+    } catch {
+      setImporting(false);
+      setNote("Couldn’t import automatically. Upload CSV or paste project links manually.");
+    }
   }
 
   function onCsv(e: React.ChangeEvent<HTMLInputElement>) {
@@ -77,8 +98,8 @@ export function DevpostImportForm() {
           className="flex-1 border-none bg-transparent text-sm outline-none"
           aria-label="Devpost hackathon URL"
         />
-        <Button size="sm" onClick={importDevpost}>
-          Import
+        <Button size="sm" onClick={importDevpost} disabled={importing}>
+          {importing ? "Importing…" : "Import"}
         </Button>
       </div>
 

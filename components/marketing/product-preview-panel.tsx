@@ -11,6 +11,8 @@ import { TechIcon } from "@/components/ui/tech-icon";
  *
  *   • Search filters the track list by project / team / participant, and selecting
  *     a project repaints the left column (summary + rubric) and the GitHub timeline.
+ *   • The rubric rows are real sliders — drag to score and the total + track rank
+ *     update live, so visitors can "try it" on the first try.
  *   • The three traffic-light dots work like the macOS title bar:
  *       red = close, yellow = minimize (collapse to the bar), green = zoom (maximize).
  *   • ⌘K (or Ctrl+K) focuses the search field.
@@ -30,7 +32,7 @@ type Project = {
   clean: boolean;
   summary: string;
   tags: string[];
-  rubric: { name: string; score: string; pct: string }[];
+  rubric: { name: string; value: number; max: number }[];
   timeline: { label: string; meta: string }[];
   timelineNote: string;
 };
@@ -49,10 +51,10 @@ const PROJECTS: Project[] = [
       "A triage assistant for rural clinics that routes patient intake photos to the right specialist. Built on a fine-tuned vision model with an offline-first PWA front end.",
     tags: ["Next.js", "PyTorch", "Supabase"],
     rubric: [
-      { name: "Innovation", score: "18/20", pct: "90%" },
-      { name: "Technical", score: "22/25", pct: "88%" },
-      { name: "Functionality", score: "17/20", pct: "85%" },
-      { name: "Design / UX", score: "13/15", pct: "87%" },
+      { name: "Innovation", value: 22, max: 25 },
+      { name: "Technical", value: 26, max: 30 },
+      { name: "Functionality", value: 21, max: 25 },
+      { name: "Design / UX", value: 18, max: 20 },
     ],
     timeline: [
       { label: "Repo created", meta: "Feb 14 · 9:12 AM · within window" },
@@ -74,10 +76,10 @@ const PROJECTS: Project[] = [
       "An OCR pipeline that turns handwritten prescriptions into structured, pharmacist-checkable orders — with a confidence score and a human-in-the-loop review queue.",
     tags: ["FastAPI", "Tesseract", "Postgres"],
     rubric: [
-      { name: "Innovation", score: "16/20", pct: "80%" },
-      { name: "Technical", score: "21/25", pct: "84%" },
-      { name: "Functionality", score: "17/20", pct: "85%" },
-      { name: "Design / UX", score: "12/15", pct: "80%" },
+      { name: "Innovation", value: 21, max: 25 },
+      { name: "Technical", value: 25, max: 30 },
+      { name: "Functionality", value: 20, max: 25 },
+      { name: "Design / UX", value: 17, max: 20 },
     ],
     timeline: [
       { label: "Repo created", meta: "Feb 14 · 8:40 AM · within window" },
@@ -99,10 +101,10 @@ const PROJECTS: Project[] = [
       "A peer mental-health check-in app for universities that nudges at-risk students toward campus resources, with anonymized cohort trends for counseling centers.",
     tags: ["React Native", "Node", "Redis"],
     rubric: [
-      { name: "Innovation", score: "17/20", pct: "85%" },
-      { name: "Technical", score: "18/25", pct: "72%" },
-      { name: "Functionality", score: "16/20", pct: "80%" },
-      { name: "Design / UX", score: "12/15", pct: "80%" },
+      { name: "Innovation", value: 20, max: 25 },
+      { name: "Technical", value: 23, max: 30 },
+      { name: "Functionality", value: 20, max: 25 },
+      { name: "Design / UX", value: 16, max: 20 },
     ],
     timeline: [
       { label: "Repo created", meta: "Feb 10 · 2:05 PM · before window" },
@@ -124,10 +126,10 @@ const PROJECTS: Project[] = [
       "A spaced-repetition tutor that generates rubric-aligned practice questions from a syllabus and tracks mastery per learning objective for med-school prep.",
     tags: ["Svelte", "Bun", "SQLite"],
     rubric: [
-      { name: "Innovation", score: "15/20", pct: "75%" },
-      { name: "Technical", score: "19/25", pct: "76%" },
-      { name: "Functionality", score: "15/20", pct: "75%" },
-      { name: "Design / UX", score: "12/15", pct: "80%" },
+      { name: "Innovation", value: 19, max: 25 },
+      { name: "Technical", value: 23, max: 30 },
+      { name: "Functionality", value: 18, max: 25 },
+      { name: "Design / UX", value: 16, max: 20 },
     ],
     timeline: [
       { label: "Repo created", meta: "Feb 14 · 10:02 AM · within window" },
@@ -174,6 +176,24 @@ export function ProductPreviewPanel() {
   const selected =
     filtered.find((p) => p.id === selectedId) ?? filtered[0] ?? PROJECTS.find((p) => p.id === selectedId)!;
 
+  // Editable rubric scores per project — visitors can drag the sliders right here.
+  const [rubricScores, setRubricScores] = useState<Record<string, number[]>>(() =>
+    Object.fromEntries(PROJECTS.map((p) => [p.id, p.rubric.map((r) => r.value)])),
+  );
+  const values = rubricScores[selected.id] ?? selected.rubric.map((r) => r.value);
+  const liveTotal = values.reduce((a, b) => a + b, 0);
+  const scoreFor = (p: Project) =>
+    (rubricScores[p.id] ?? p.rubric.map((r) => r.value)).reduce((a, b) => a + b, 0);
+
+  function setCriterion(index: number, value: number) {
+    setRubricScores((prev) => {
+      const current = prev[selected.id] ?? selected.rubric.map((r) => r.value);
+      const next = current.slice();
+      next[index] = value;
+      return { ...prev, [selected.id]: next };
+    });
+  }
+
   const bodyVisible = windowState === "open";
 
   return (
@@ -197,22 +217,15 @@ export function ProductPreviewPanel() {
       >
         {/* browser bar */}
         <div className="flex items-center gap-2 border-b border-line-darker bg-panel-700 px-[18px] py-3">
-          <div className="group flex items-center gap-2">
-            <WindowDot
-              color="#FF5F57"
-              glyph="×"
-              label="Close preview"
-              onClick={() => setWindowState("closed")}
-            />
+          <div className="flex items-center gap-2">
+            <WindowDot color="#FF5F57" label="Close preview" onClick={() => setWindowState("closed")} />
             <WindowDot
               color="#FEBC2E"
-              glyph="–"
               label="Minimize preview"
               onClick={() => setWindowState((s) => (s === "minimized" ? "open" : "minimized"))}
             />
             <WindowDot
               color="#28C840"
-              glyph={maximized ? "−" : "+"}
               label={maximized ? "Restore preview" : "Maximize preview"}
               onClick={() => {
                 if (windowState !== "open") setWindowState("open");
@@ -329,31 +342,54 @@ export function ProductPreviewPanel() {
                   {/* rubric score */}
                   <div className="rounded-[13px] border border-line-dark bg-panel-800 p-4">
                     <div className="mb-3 flex items-center justify-between">
-                      <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#7A7A7A]">
-                        Rubric Score
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#7A7A7A]">
+                          Rubric Score
+                        </span>
+                        <span className="rounded border border-line-dark px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.08em] text-[#6A6A6A]">
+                          drag to try
+                        </span>
                       </div>
                       <div className="text-[15px] font-semibold">
-                        <span className="text-white">{selected.score}</span>
+                        <span className="tabular-nums text-white">{liveTotal}</span>
                         <span className="text-dim"> / 100</span>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-[9px]">
-                      {selected.rubric.map((row) => (
-                        <div key={row.name} className="flex items-center gap-[11px]">
-                          <span className="w-24 flex-shrink-0 text-[12.5px] text-[#B4B4B4]">
-                            {row.name}
-                          </span>
-                          <div className="h-[5px] flex-1 overflow-hidden rounded-[3px] bg-[#181818]">
-                            <div
-                              className="h-full rounded-[3px] bg-accent transition-all duration-500"
-                              style={{ width: row.pct }}
-                            />
+                    <div className="flex flex-col gap-3">
+                      {selected.rubric.map((row, i) => {
+                        const v = values[i] ?? row.value;
+                        const pct = Math.round((v / row.max) * 100);
+                        return (
+                          <div key={row.name} className="group flex items-center gap-[11px]">
+                            <span className="w-24 flex-shrink-0 text-[12.5px] text-[#B4B4B4]">
+                              {row.name}
+                            </span>
+                            <div className="relative h-[5px] flex-1">
+                              <div className="absolute inset-0 rounded-[3px] bg-[#181818]" />
+                              <div
+                                className="absolute inset-y-0 left-0 rounded-[3px] bg-accent"
+                                style={{ width: `${pct}%` }}
+                              />
+                              <span
+                                className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#0c0c0c] bg-white shadow-sm transition-transform group-hover:scale-110"
+                                style={{ left: `${pct}%` }}
+                              />
+                              <input
+                                type="range"
+                                min={0}
+                                max={row.max}
+                                value={v}
+                                onChange={(e) => setCriterion(i, Number(e.target.value))}
+                                aria-label={`${row.name} score`}
+                                className="absolute -inset-y-2 inset-x-0 w-full cursor-pointer appearance-none bg-transparent opacity-0"
+                              />
+                            </div>
+                            <span className="w-11 text-right font-mono text-[11.5px] tabular-nums text-[#8A8A8A]">
+                              {v}/{row.max}
+                            </span>
                           </div>
-                          <span className="w-11 text-right font-mono text-[11.5px] text-[#8A8A8A]">
-                            {row.score}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -396,7 +432,9 @@ export function ProductPreviewPanel() {
                               >
                                 {t.name}
                               </span>
-                              <span className="font-mono text-[12px] text-[#8A8A8A]">{t.score}</span>
+                              <span className="font-mono text-[12px] tabular-nums text-[#8A8A8A]">
+                                {scoreFor(t)}
+                              </span>
                             </button>
                           );
                         })
@@ -457,31 +495,17 @@ export function ProductPreviewPanel() {
   );
 }
 
-/** A macOS traffic-light dot — colored, with a glyph that appears on group hover. */
-function WindowDot({
-  color,
-  glyph,
-  label,
-  onClick,
-}: {
-  color: string;
-  glyph: string;
-  label: string;
-  onClick: () => void;
-}) {
+/** A macOS traffic-light dot — just the red/yellow/green coloring, still clickable. */
+function WindowDot({ color, label, onClick }: { color: string; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-[11px] w-[11px] items-center justify-center rounded-full leading-none transition-transform active:scale-90"
+      className="h-[11px] w-[11px] rounded-full transition-transform hover:brightness-110 active:scale-90"
       style={{ background: color }}
-    >
-      <span className="text-[9px] font-bold text-black/55 opacity-0 transition-opacity group-hover:opacity-100">
-        {glyph}
-      </span>
-    </button>
+    />
   );
 }
 

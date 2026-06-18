@@ -77,6 +77,82 @@ export async function sendVerificationEmail(to: string, link: string): Promise<S
   }
 }
 
+export async function sendVerificationCodeEmail(
+  to: string,
+  code: string,
+  continueLink?: string,
+  location?: string,
+): Promise<SendResult> {
+  const transport = getTransport();
+  if (!transport) return { sent: false, demo: true };
+
+  try {
+    const info = await transport.sendMail({
+      from: fromAddress(),
+      to,
+      subject: `${code} is your ${FROM_NAME} verification code`,
+      text: `Your ${FROM_NAME} verification code is ${code}.\n\nEnter it to confirm your email (it expires in 10 minutes)${
+        continueLink ? `, or just open this link to continue:\n${continueLink}` : "."
+      }\n\n${location ? `This code was requested from ${location}. ` : ""}If you didn't request this, you can ignore this message.`,
+      html: verificationCodeEmailHtml(code, continueLink, location),
+    });
+    return { sent: true, demo: false, messageId: info.messageId };
+  } catch (err) {
+    return { sent: false, demo: false, error: err instanceof Error ? err.message : "send failed" };
+  }
+}
+
+export async function sendJudgeInviteEmail(
+  to: string,
+  opts: { acceptLink: string; hackathonName?: string; inviterName?: string },
+): Promise<SendResult> {
+  const transport = getTransport();
+  if (!transport) return { sent: false, demo: true };
+
+  const event = opts.hackathonName || "a hackathon";
+  const inviter = opts.inviterName ? `${opts.inviterName} ` : "";
+  try {
+    const info = await transport.sendMail({
+      from: fromAddress(),
+      to,
+      subject: `You're invited to judge ${event} on ${FROM_NAME}`,
+      text: `${inviter}invited you to judge ${event} on ${FROM_NAME}.\n\nAccept and create your judge account with this email:\n${opts.acceptLink}\n`,
+      html: judgeInviteEmailHtml(opts.acceptLink, event, opts.inviterName),
+    });
+    return { sent: true, demo: false, messageId: info.messageId };
+  } catch (err) {
+    return { sent: false, demo: false, error: err instanceof Error ? err.message : "send failed" };
+  }
+}
+
+function judgeInviteEmailHtml(acceptLink: string, event: string, inviter?: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#0a0b0d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;">
+      <tr><td style="padding:0 0 28px;">
+        <span style="font-size:18px;font-weight:600;letter-spacing:-0.01em;color:#f3f1ec;">${FROM_NAME}</span>
+      </td></tr>
+      <tr><td style="background:#17181b;border:1px solid #27292e;border-radius:18px;padding:36px 32px;">
+        <h1 style="margin:0 0 10px;font-size:22px;line-height:1.25;color:#f3f1ec;font-weight:600;letter-spacing:-0.02em;">You're invited to judge</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#a0a09a;">
+          ${inviter ? `${inviter} invited you` : "You've been invited"} to judge <strong style="color:#f3f1ec;">${event}</strong>. Accept below and create your judge account with <em>this</em> email address.
+        </p>
+        <a href="${acceptLink}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-size:15px;font-weight:600;padding:13px 30px;border-radius:10px;">
+          Accept &amp; sign up &rarr;
+        </a>
+        <p style="margin:18px 0 0;font-size:12px;line-height:1.6;color:#6a6a6a;word-break:break-all;">
+          Or paste this link: <span style="color:#7a8aa8;">${acceptLink}</span>
+        </p>
+      </td></tr>
+      <tr><td style="padding:22px 4px 0;font-size:12px;line-height:1.5;color:#5a5a5a;">
+        Didn't expect this? You can ignore it — no account is created until you sign up.
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+}
+
 /** Verify the SMTP credentials/connection without sending mail. */
 export async function verifyTransport(): Promise<{ ok: boolean; demo: boolean; error?: string }> {
   const transport = getTransport();
@@ -87,6 +163,50 @@ export async function verifyTransport(): Promise<{ ok: boolean; demo: boolean; e
   } catch (err) {
     return { ok: false, demo: false, error: err instanceof Error ? err.message : "verify failed" };
   }
+}
+
+function verificationCodeEmailHtml(code: string, continueLink?: string, location?: string): string {
+  const cells = code
+    .split("")
+    .map(
+      (d) =>
+        `<td style="width:48px;height:58px;text-align:center;vertical-align:middle;background:#0f1012;border:1px solid #27292e;border-radius:12px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:30px;font-weight:600;color:#f3f1ec;">${d}</td>`,
+    )
+    .join('<td style="width:8px;"></td>');
+
+  const continueBlock = continueLink
+    ? `<tr><td style="padding:24px 0 0;text-align:center;">
+        <a href="${continueLink}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:13px 30px;border-radius:10px;">
+          Continue &rarr;
+        </a>
+        <p style="margin:12px 0 0;font-size:12px;line-height:1.5;color:#6a6a6a;">
+          Opens OpenRubric in your browser and verifies you automatically — no typing needed.
+        </p>
+      </td></tr>`
+    : "";
+
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#0a0b0d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;">
+      <tr><td style="padding:0 0 28px;">
+        <span style="font-size:18px;font-weight:600;letter-spacing:-0.01em;color:#f3f1ec;">${FROM_NAME}</span>
+      </td></tr>
+      <tr><td style="background:#17181b;border:1px solid #27292e;border-radius:18px;padding:36px 32px;">
+        <h1 style="margin:0 0 10px;font-size:22px;line-height:1.25;color:#f3f1ec;font-weight:600;letter-spacing:-0.02em;">Verify your email</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#a0a09a;">
+          Enter this 6-digit code to confirm your email. It expires in 10 minutes.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 6px;"><tr>${cells}</tr></table>
+        <p style="margin:0;text-align:center;font-size:12px;color:#6a6a6a;">Tap and hold a digit to copy the code.</p>
+        ${continueBlock}
+      </td></tr>
+      <tr><td style="padding:22px 4px 0;font-size:12px;line-height:1.5;color:#5a5a5a;">
+        ${location ? `This code was requested from <span style="color:#8a8a8a;">${location}</span>.<br/>` : ""}Didn't request this? You can safely ignore this email — no account will be verified.
+      </td></tr>
+    </table>
+  </body>
+</html>`;
 }
 
 function verificationEmailHtml(link: string): string {

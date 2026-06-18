@@ -15,9 +15,29 @@ export function JudgeInviteForm({
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({ name: "", email: "", tracks: "" });
+  const [sending, setSending] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
 
-  function invite() {
+  async function invite() {
     if (!draft.name.trim() || !draft.email.trim()) return;
+    setSending(true);
+    setNote(null);
+    try {
+      const res = await fetch("/api/judges/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: draft.email.trim(),
+          name: draft.name.trim(),
+          tracks: draft.tracks ? draft.tracks.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setNote(data.ok ? `Invite emailed to ${draft.email.trim()}.` : data.error || "Couldn't send the invite.");
+    } catch {
+      setNote("Network error sending the invite.");
+    }
+    setSending(false);
     onChange([...judges, { ...draft, scope: "All submissions" }]);
     setDraft({ name: "", email: "", tracks: "" });
     setOpen(false);
@@ -67,8 +87,8 @@ export function JudgeInviteForm({
             placeholder="Tracks (optional)"
             className="rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-accent"
           />
-          <Button size="sm" onClick={invite}>
-            Add
+          <Button size="sm" onClick={invite} disabled={sending}>
+            {sending ? "Sending…" : "Add"}
           </Button>
         </div>
       ) : (
@@ -80,6 +100,8 @@ export function JudgeInviteForm({
           + Invite a judge
         </button>
       )}
+
+      {note && <p className="mt-2.5 font-mono text-[11.5px] text-signal-clean">{note}</p>}
     </div>
   );
 }

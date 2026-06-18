@@ -1,22 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-
 export interface DraftCriterion {
   name: string;
   max: number;
 }
 
-/** Parse "Innovation (20), Technical Complexity (25)…" into criteria. */
-export function parseRubricText(text: string): DraftCriterion[] {
-  const matches = [...text.matchAll(/([A-Za-z0-9/&.\s-]+?)\s*\((\d+)\)/g)];
-  return matches
-    .map((m) => ({ name: m[1].trim().replace(/^[,;.]+/, "").trim(), max: Number(m[2]) }))
-    .filter((c) => c.name.length > 0);
-}
-
+/**
+ * Simple rubric builder — no pasting, no parsing. Just add criteria and set points.
+ * Each row is an editable name + max points; the total updates live.
+ */
 export function RubricBuilder({
   criteria,
   onChange,
@@ -24,15 +16,6 @@ export function RubricBuilder({
   criteria: DraftCriterion[];
   onChange: (next: DraftCriterion[]) => void;
 }) {
-  const [text, setText] = useState(
-    "Innovation (20), Technical Complexity (25), Functionality (20), Design / UX (15), Impact (10), Presentation (10).",
-  );
-
-  function generate() {
-    const parsed = parseRubricText(text);
-    if (parsed.length) onChange(parsed);
-  }
-
   function update(i: number, patch: Partial<DraftCriterion>) {
     onChange(criteria.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
   }
@@ -41,51 +24,51 @@ export function RubricBuilder({
 
   return (
     <div>
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Paste your rubric text here…"
-        className="mb-3.5 min-h-[90px]"
-      />
       <div className="mb-[18px] flex items-center justify-between">
+        <span className="text-[13px] text-dim">Add the criteria judges score against.</span>
         <span className="font-mono text-[11px] text-faint">Total: {total} pts</span>
-        <Button size="sm" onClick={generate}>
-          Generate criteria
-        </Button>
       </div>
+
       <div className="overflow-hidden rounded-[12px] border border-line">
-        {criteria.map((c, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between gap-3 border-b border-line-softer px-4 py-3 last:border-b-0"
-          >
-            <input
-              value={c.name}
-              onChange={(e) => update(i, { name: e.target.value })}
-              className="flex-1 border-none bg-transparent text-sm font-medium outline-none"
-              aria-label="Criterion name"
-            />
-            <div className="flex items-center gap-1.5">
-              <input
-                value={c.max}
-                onChange={(e) => update(i, { max: Number(e.target.value) || 0 })}
-                inputMode="numeric"
-                className="w-[46px] rounded-[7px] border border-line bg-raised px-2 py-1.5 text-right font-mono text-[13px] outline-none focus:border-accent"
-                aria-label="Max points"
-              />
-              <span className="font-mono text-[12px] text-faint">pts</span>
-              <button
-                type="button"
-                onClick={() => onChange(criteria.filter((_, idx) => idx !== i))}
-                className="ml-1 text-faint transition-colors hover:text-signal-high"
-                aria-label={`Remove ${c.name}`}
-              >
-                ×
-              </button>
-            </div>
+        {criteria.length === 0 ? (
+          <div className="px-4 py-6 text-center text-[13px] text-faint">
+            No criteria yet — add your first below.
           </div>
-        ))}
+        ) : (
+          criteria.map((c, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between gap-3 border-b border-line-softer px-4 py-3 last:border-b-0"
+            >
+              <input
+                value={c.name}
+                onChange={(e) => update(i, { name: e.target.value })}
+                className="flex-1 border-none bg-transparent text-sm font-medium outline-none"
+                aria-label="Criterion name"
+              />
+              <div className="flex items-center gap-1.5">
+                <input
+                  value={c.max}
+                  onChange={(e) => update(i, { max: Number(e.target.value) || 0 })}
+                  inputMode="numeric"
+                  className="w-[46px] rounded-[7px] border border-line bg-raised px-2 py-1.5 text-right font-mono text-[13px] outline-none focus:border-accent"
+                  aria-label="Max points"
+                />
+                <span className="font-mono text-[12px] text-faint">pts</span>
+                <button
+                  type="button"
+                  onClick={() => onChange(criteria.filter((_, idx) => idx !== i))}
+                  className="ml-1 text-faint transition-colors hover:text-signal-high"
+                  aria-label={`Remove ${c.name}`}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
+
       <button
         type="button"
         onClick={() => onChange([...criteria, { name: "New criterion", max: 10 }])}

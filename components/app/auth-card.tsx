@@ -1,45 +1,92 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MailCheck } from "lucide-react";
+import { Check, Copy, MailCheck } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TechIcon } from "@/components/ui/tech-icon";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { Toast } from "@/components/ui/toast";
+import { OtpInput } from "@/components/ui/otp-input";
+import { GoogleIcon } from "@/components/ui/google-icon";
+import { GithubIcon } from "@/components/ui/github-icon";
+import { GmailIcon } from "@/components/ui/gmail-icon";
+import { PASSWORD_RULES } from "@/lib/password";
 import { cn } from "@/lib/utils";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { ROUTES } from "@/lib/constants";
 import { signInSchema, signUpSchema, type SignInValues, type SignUpValues } from "@/lib/validators";
-import type { Role } from "@/lib/types";
 
-const ROLES: { value: Role; label: string }[] = [
-  { value: "organizer", label: "Organizer" },
-  { value: "judge", label: "Judge" },
-  { value: "participant", label: "Participant" },
-];
+/** Turn raw Supabase auth errors into clear, human-readable messages. */
+function friendlyAuthError(message: string): string {
+  const m = (message || "").toLowerCase();
+  if (m.includes("already registered") || m.includes("already exists"))
+    return "An account with this email already exists. Try signing in instead.";
+  if (m.includes("invalid login credentials"))
+    return "We couldn't find an account matching that email and password. Check your details, or create an account.";
+  if (m.includes("email not confirmed"))
+    return "Please verify your email first — check your inbox for the code we sent.";
+  if (m.includes("rate") || m.includes("too many"))
+    return "Too many attempts right now. Wait a minute, then try again.";
+  if (m.includes("password"))
+    return "That password doesn't meet the requirements: 8+ characters with upper- and lower-case letters and a number.";
+  if (m.includes("email"))
+    return "That email address looks invalid. Double-check it and try again.";
+  return message || "Something went wrong. Please try again.";
+}
 
-const ROLE_DEST: Record<Role, string> = {
-  organizer: ROUTES.organizerDashboard,
-  judge: ROUTES.judgeDashboard,
-  participant: ROUTES.teamDashboard,
-};
-
-export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
+export function AuthCard({
+  mode,
+  invite,
+  inviteEmail,
+}: {
+  mode: "sign-in" | "sign-up";
+  invite?: string;
+  inviteEmail?: string;
+}) {
   const router = useRouter();
   const isSignUp = mode === "sign-up";
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  // After sign-up we send a verification email and switch to a "check your inbox"
-  // panel. demoLink is only set when no SMTP is configured (so the flow still works).
+  // After sign-up we email a 6-digit code and switch to the code-entry panel.
+  // demoCode is only set when no SMTP is configured (so the flow still works).
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const [demoLink, setDemoLink] = useState<string | null>(null);
+  const [verifyToken, setVerifyToken] = useState<string | null>(null);
+  const [demoCode, setDemoCode] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [codeStatus, setCodeStatus] = useState<"idle" | "error" | "success">("idle");
+  const [verifying, setVerifying] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function copyCode(value: string) {
+    navigator.clipboard
+      ?.writeText(value)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      })
+      .catch(() => showToast("Couldn't copy — select the code and copy it manually."));
+  }
+
+  function openWorkspace() {
+    // Invited judges go straight to judging; everyone else picks a role.
+    window.open(invite ? ROUTES.judgeDashboard : ROUTES.getStarted, "_blank", "noopener,noreferrer");
+  }
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string) {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 4500);
+  }
 
   const signIn = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -47,17 +94,21 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
   });
   const signUp = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { fullName: "", email: "", password: "", role: "organizer" },
+    defaultValues: {
+      fullName: "",
+      email: inviteEmail ?? "",
+      password: "",
+      role: invite ? "judge" : "organizer",
+    },
   });
-
-  const role = signUp.watch("role");
+  const pw = signUp.watch("password") ?? "";
 
   async function onOAuth(provider: "google" | "github") {
     setError(null);
     setInfo(null);
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      router.push(ROUTES.judgeDashboard); // demo mode — no backend configured
+      router.push(ROUTES.getStarted); // demo mode — no backend configured
       return;
     }
     setPending(true);
@@ -66,13 +117,13 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
       options: {
         redirectTo:
           typeof window !== "undefined"
-            ? `${window.location.origin}${ROUTES.judgeDashboard}`
+            ? `${window.location.origin}${ROUTES.getStarted}`
             : undefined,
       },
     });
     if (error) {
       setPending(false);
-      setError(error.message);
+      showToast(friendlyAuthError(error.message));
     }
     // On success the browser is redirected to the provider's consent screen.
   }
@@ -82,7 +133,7 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
     setInfo(null);
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      router.push(ROUTES.judgeDashboard); // demo mode
+      router.push(ROUTES.getStarted); // demo mode
       return;
     }
     setPending(true);
@@ -92,14 +143,14 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
     });
     setPending(false);
     if (error) {
-      setError(error.message);
+      showToast(friendlyAuthError(error.message));
       return;
     }
     router.refresh();
-    router.push(ROUTES.judgeDashboard);
+    router.push(ROUTES.getStarted);
   }
 
-  /** Issue + send a verification email, then switch to the "check your inbox" panel. */
+  /** Email a 6-digit code, then switch to the code-entry panel. */
   async function requestVerification(email: string) {
     setError(null);
     setPending(true);
@@ -112,14 +163,56 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
       const data = await res.json().catch(() => ({}));
       setPending(false);
       if (!res.ok || !data.ok) {
-        setError(data.error || "Could not send the verification email.");
+        showToast(data.error || "Could not send the verification email.");
         return;
       }
+      setCode("");
+      setCodeStatus("idle");
+      setVerifyToken(data.token ?? null);
+      setDemoCode(data.demo ? (data.code ?? null) : null);
       setSentTo(email);
-      setDemoLink(data.demo ? data.link : null);
     } catch {
       setPending(false);
-      setError("Network error sending the verification email.");
+      showToast("Network error sending the verification email.");
+    }
+  }
+
+  /** Verify the typed 6-digit code; on success animate, then continue. */
+  async function verifyCode(submitted: string) {
+    if (!verifyToken || submitted.length < 6 || verifying || codeStatus === "success") return;
+    setVerifying(true);
+    setCodeStatus("idle");
+    try {
+      const res = await fetch("/api/auth/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: verifyToken, code: submitted }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setVerifying(false);
+      if (res.ok && data.ok) {
+        // Invited judge: accept the invitation (marks accepted, pins judge role).
+        if (invite) {
+          await fetch("/api/judges/accept", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: invite, email: data.email }),
+          }).catch(() => {});
+        }
+        setCodeStatus("success");
+      } else {
+        setCodeStatus("error");
+        setCode("");
+        showToast(
+          data.reason === "expired"
+            ? "That code expired — tap resend for a new one."
+            : "That code isn't right. Check your email and try again.",
+        );
+      }
+    } catch {
+      setVerifying(false);
+      setCodeStatus("error");
+      showToast("Network error verifying the code.");
     }
   }
 
@@ -127,83 +220,167 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
     setError(null);
     setInfo(null);
     const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      // Demo mode: no backend auth, but still demonstrate the verification flow.
-      await requestVerification(values.email);
-      return;
+
+    if (supabase) {
+      setPending(true);
+      const { error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: { data: { full_name: values.fullName, role: values.role } },
+      });
+      setPending(false);
+      // "Already registered" is fine here — they can still verify by email code and
+      // continue. Any *other* error (bad email, rate limit…) stops the flow.
+      if (error && !/already (registered|exists)/i.test(error.message)) {
+        showToast(friendlyAuthError(error.message));
+        return;
+      }
     }
-    setPending(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: { full_name: values.fullName, role: values.role },
-        emailRedirectTo:
-          typeof window !== "undefined" ? `${window.location.origin}${ROUTES.verify}` : undefined,
-      },
-    });
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    if (data.session) {
-      router.refresh();
-      router.push(ROLE_DEST[values.role]);
-    } else {
-      // Account needs email confirmation — send our branded verification link too.
-      await requestVerification(values.email);
-    }
+
+    // Always email a 6-digit code and open the verification panel.
+    await requestVerification(values.email);
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-canvas p-8">
-      <div className="w-full max-w-[420px]">
-        <Link href={ROUTES.home} className="mb-7 flex items-center justify-center text-ink">
-          <Logo />
-        </Link>
+    <>
+      <Toast message={toast} onDismiss={() => setToast(null)} />
+      <div className="relative flex min-h-screen items-center justify-center bg-canvas p-8">
+        <div className="w-full max-w-[420px]">
+          <Link href={ROUTES.home} className="mb-7 flex items-center justify-center text-ink">
+            <Logo />
+          </Link>
 
-        <div className="rounded-[18px] border border-line bg-surface p-8 shadow-card">
+          <motion.div
+            key={mode}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="relative rounded-[18px] border border-line bg-surface p-8 shadow-card"
+          >
           {sentTo ? (
-            <div className="animate-floatup py-2 text-center">
-              <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center">
-                <span className="absolute inset-0 animate-ping rounded-full bg-accent/15" />
-                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
-                  <MailCheck className="h-7 w-7" strokeWidth={1.7} />
-                </span>
-              </div>
-              <h1 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">Check your inbox</h1>
-              <p className="mb-5 text-sm leading-relaxed text-dim">
-                We sent a verification link to{" "}
-                <span className="font-medium text-ink">{sentTo}</span>. It expires in 30 minutes.
-              </p>
-              {error && <p className="mb-3 text-[12.5px] text-signal-high">{error}</p>}
-              {demoLink && (
-                <>
-                  <a
-                    href={demoLink}
-                    className="mb-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-control bg-accent px-4 py-3 text-[14px] font-medium text-white transition-colors hover:bg-accent/90"
+            <div className="animate-floatup py-1 text-center">
+              {codeStatus === "success" ? (
+                <div className="py-6">
+                  <motion.div
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                    className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(46,138,94,0.12)] text-[#2e8a5e]"
                   >
-                    Open verification link →
-                  </a>
-                  <p className="mb-4 font-mono text-[10.5px] text-faint">
-                    Demo mode — no SMTP configured, so the link is shown here.
+                    <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+                      <motion.path
+                        d="M11 20.5L17 26.5L29 13.5"
+                        stroke="currentColor"
+                        strokeWidth="3.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+                      />
+                    </svg>
+                  </motion.div>
+                  <h1 className="mb-1 text-[22px] font-semibold tracking-[-0.02em]">Email verified</h1>
+                  <p className="mb-6 text-sm text-dim">
+                    You&apos;re all set
+                    {sentTo ? (
+                      <>
+                        {" "}
+                        — <span className="font-medium text-ink">{sentTo}</span>
+                      </>
+                    ) : null}{" "}
+                    is confirmed.
                   </p>
+                  <button
+                    type="button"
+                    onClick={openWorkspace}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-control bg-accent px-4 py-3 text-[14px] font-medium text-white transition-colors hover:bg-accent/90"
+                  >
+                    Continue →
+                  </button>
+                  <p className="mt-2.5 font-mono text-[11px] text-faint">
+                    Opens your workspace in a new tab.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-accent/15" />
+                    <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
+                      <MailCheck className="h-7 w-7" strokeWidth={1.7} />
+                    </span>
+                  </div>
+                  <h1 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">
+                    Enter verification code
+                  </h1>
+                  <p className="mb-5 text-sm leading-relaxed text-dim">
+                    Enter the 6-digit code we sent to{" "}
+                    <span className="font-medium text-ink">{sentTo}</span>.
+                  </p>
+
+                  <OtpInput
+                    value={code}
+                    onChange={(v) => {
+                      setCode(v);
+                      if (codeStatus === "error") setCodeStatus("idle");
+                      if (v.length === 6) verifyCode(v);
+                    }}
+                    status={codeStatus}
+                    disabled={verifying}
+                  />
+
+                  <p className="mb-4 mt-3 h-4 font-mono text-[11px] text-dim">
+                    {verifying ? "Verifying…" : ""}
+                  </p>
+
+                  {demoCode && (
+                    <div className="mb-4 flex items-center justify-center gap-2">
+                      <span className="font-mono text-[11px] text-faint">Demo code</span>
+                      <button
+                        type="button"
+                        onClick={() => copyCode(demoCode)}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-line bg-raised px-2.5 py-1 font-mono text-[12px] tabular-nums tracking-[0.15em] text-ink transition-colors hover:border-ink"
+                        aria-label="Copy verification code"
+                      >
+                        {demoCode}
+                        {copied ? (
+                          <Check className="h-3.5 w-3.5 text-[#2e8a5e]" strokeWidth={3} />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-dim" strokeWidth={2} />
+                        )}
+                      </button>
+                      {copied && <span className="text-[11px] text-[#2e8a5e]">Copied</span>}
+                    </div>
+                  )}
+
+                  <a
+                    href={`https://mail.google.com/mail/u/0/#search/${encodeURIComponent(
+                      "OpenRubric verification code",
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface px-4 py-3 text-[14px] font-medium text-ink shadow-sm transition-colors hover:border-ink"
+                  >
+                    <GmailIcon className="h-[18px] w-[18px]" />
+                    Go to Gmail &amp; find the code
+                  </a>
+
+                  <div className="flex items-center justify-center gap-3 text-[13px]">
+                    <button
+                      type="button"
+                      onClick={() => requestVerification(sentTo)}
+                      disabled={pending || verifying}
+                      className="font-medium text-accent transition-opacity hover:opacity-70 disabled:opacity-50"
+                    >
+                      {pending ? "Resending…" : "Resend code"}
+                    </button>
+                    <span className="text-faint">·</span>
+                    <Link href={ROUTES.signIn} className="text-dim underline">
+                      Back to sign in
+                    </Link>
+                  </div>
                 </>
               )}
-              <button
-                type="button"
-                onClick={() => requestVerification(sentTo)}
-                disabled={pending}
-                className="text-[13px] font-medium text-accent transition-opacity hover:opacity-70 disabled:opacity-50"
-              >
-                {pending ? "Resending…" : "Resend email"}
-              </button>
-              <div className="mt-5 border-t border-line-soft pt-4">
-                <Link href={ROUTES.signIn} className="text-[13px] text-dim underline">
-                  Back to sign in
-                </Link>
-              </div>
             </div>
           ) : (
             <>
@@ -212,9 +389,17 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
               </h1>
           <p className="mb-6 text-sm text-dim">
             {isSignUp
-              ? "Organize, judge, or submit — pick a role to get started."
-              : "Continue with your judging account, or jump into a demo workspace."}
+              ? invite
+                ? "Accept your judge invitation by creating an account with the invited email."
+                : "Create your account — you'll set up your role during onboarding."
+              : "Continue with your judging account to pick up where you left off."}
           </p>
+
+          {invite && isSignUp && (
+            <div className="mb-4 rounded-control border border-[rgba(46,138,94,0.3)] bg-[rgba(46,138,94,0.06)] px-3.5 py-2.5 text-[13px] text-signal-clean">
+              You&apos;ve been invited as a <strong>judge</strong>. Sign up with this email to accept.
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 rounded-control border border-[rgba(180,69,60,0.3)] bg-[rgba(180,69,60,0.06)] px-3.5 py-2.5 text-[13px] text-signal-high">
@@ -233,9 +418,9 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
               type="button"
               onClick={() => onOAuth("google")}
               disabled={pending}
-              className="group flex items-center justify-center gap-2.5 rounded-control bg-accent px-4 py-3 text-[14px] font-medium text-white shadow-sm transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-60"
+              className="group flex items-center justify-center gap-2.5 rounded-control border border-line bg-surface px-4 py-3 text-[14px] font-medium text-ink shadow-sm transition-colors hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15 disabled:opacity-60"
             >
-              <TechIcon name="Google" className="h-[18px] w-[18px]" />
+              <GoogleIcon className="h-[18px] w-[18px]" />
               Continue with Google
             </button>
             <button
@@ -244,7 +429,7 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
               disabled={pending}
               className="group flex items-center justify-center gap-2.5 rounded-control border border-line bg-raised px-4 py-3 text-[14px] font-medium text-ink transition-colors hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15 disabled:opacity-60"
             >
-              <TechIcon name="GitHub" className="h-[18px] w-[18px]" />
+              <GithubIcon className="h-[18px] w-[18px]" />
               Continue with GitHub
             </button>
           </div>
@@ -257,25 +442,6 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
 
           {isSignUp ? (
             <form onSubmit={signUp.handleSubmit(onSignUp)} noValidate>
-              <Label htmlFor="role">Role</Label>
-              <div className="mb-4 grid grid-cols-3 gap-2">
-                {ROLES.map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => signUp.setValue("role", r.value)}
-                    className={cn(
-                      "rounded-control border py-2.5 font-mono text-[11.5px] uppercase tracking-[0.06em] transition-colors",
-                      role === r.value
-                        ? "border-ink bg-ink text-canvas"
-                        : "border-line bg-raised text-dim hover:border-ink",
-                    )}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-
               <Label htmlFor="fullName">Full name</Label>
               <Input id="fullName" placeholder="Priya Shah" className="mb-3.5" {...signUp.register("fullName")} />
               {signUp.formState.errors.fullName && (
@@ -289,10 +455,52 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
               )}
 
               <Label htmlFor="su-password">Password</Label>
-              <Input id="su-password" type="password" placeholder="••••••••" className="mb-[18px]" {...signUp.register("password")} />
-              {signUp.formState.errors.password && (
-                <p className="-mt-3 mb-3 text-[12px] text-signal-high">{signUp.formState.errors.password.message}</p>
-              )}
+              <div className="relative">
+                <Input
+                  id="su-password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="mb-2.5 lg:mb-[18px]"
+                  {...signUp.register("password")}
+                />
+                <AnimatePresence>
+                  {(pw.length > 0 || !!signUp.formState.errors.password) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                      className="mb-[18px] rounded-control border border-line bg-raised p-3.5 lg:absolute lg:left-full lg:top-0 lg:z-20 lg:mb-0 lg:ml-5 lg:w-56 lg:bg-surface lg:shadow-card"
+                    >
+                      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+                        Password must have
+                      </div>
+                      <ul className="flex flex-col gap-1.5">
+                        {PASSWORD_RULES.map((r) => {
+                          const ok = r.test(pw);
+                          return (
+                            <li key={r.id} className="flex items-center gap-2 text-[12.5px]">
+                              <span
+                                className={cn(
+                                  "flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border transition-colors",
+                                  ok
+                                    ? "border-[#2e8a5e] bg-[#2e8a5e] text-white"
+                                    : "border-line text-transparent",
+                                )}
+                              >
+                                <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
+                              </span>
+                              <span className={cn("transition-colors", ok ? "text-ink" : "text-dim")}>
+                                {r.label}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <Button type="submit" className="mt-1 w-full" disabled={pending}>
                 {pending ? "Creating account…" : "Create account"}
@@ -314,7 +522,7 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
           )}
             </>
           )}
-        </div>
+          </motion.div>
 
         <div className="mt-5 text-center text-[13px] text-dim">
           {isSignUp ? (
@@ -339,5 +547,6 @@ export function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
         </div>
       </div>
     </div>
+    </>
   );
 }

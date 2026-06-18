@@ -1,30 +1,77 @@
 "use client";
 
-import { initials } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { useSession } from "@/lib/session";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { colorForId, initials } from "@/lib/utils";
 
 /**
  * Live "also viewing" presence.
  *
- * In demo mode this shows realistic active judges. To go live, replace `viewers`
- * with a Supabase Realtime presence channel:
- *
- *   const channel = supabase.channel(`submission:${submissionId}`)
- *   channel.on("presence", { event: "sync" }, () => setViewers(channel.presenceState()))
- *   channel.subscribe(async (s) => { if (s === "SUBSCRIBED") await channel.track({ name }) })
- *
- * The structure here (a list of named viewers + your own identity) maps 1:1 onto
- * presence state, so the UI doesn't change when the data source does.
+ * Subscribes to the same `grade:{submissionId}` channel the shared notes track on,
+ * so it shows the other judges currently on this project in real time. In demo mode
+ * (no Supabase) it shows a realistic placeholder set.
  */
 
-const AVATAR_TINTS = ["bg-ink", "bg-accent"];
+interface Viewer {
+  id: string;
+  name: string;
+  color: string;
+}
 
-export function RealtimeJudgePresence({
-  viewers = ["Alex Chen", "Maya Patel"],
-}: {
-  viewers?: string[];
-}) {
+const DEMO_VIEWERS: Viewer[] = [
+  { id: "alex-chen", name: "Alex Chen", color: "#2563EB" },
+  { id: "maya-patel", name: "Maya Patel", color: "#8B5CF6" },
+];
+
+export function RealtimeJudgePresence({ submissionId }: { submissionId: string }) {
+  const { user } = useSession();
+  const [viewers, setViewers] = useState<Viewer[]>([]);
+  const live = Boolean(getSupabaseBrowserClient()) && Boolean(user);
+
+  useEffect(() => {
+    if (!live) {
+      setViewers(DEMO_VIEWERS);
+      return;
+    }
+    const sb = getSupabaseBrowserClient();
+    if (!sb || !user) return;
+
+    const channel = sb.channel(`grade:${submissionId}`, {
+      config: { presence: { key: `view-${user.id}` } },
+    });
+
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState() as Record<string, Array<Record<string, unknown>>>;
+        const others: Viewer[] = [];
+        const seen = new Set<string>();
+        for (const [key, metas] of Object.entries(state)) {
+          const realId = key.replace(/^view-/, "");
+          if (realId === user.id || seen.has(realId)) continue;
+          seen.add(realId);
+          const m = (metas[0] ?? {}) as Record<string, unknown>;
+          others.push({
+            id: realId,
+            name: (m.name as string) ?? "Judge",
+            color: (m.color as string) ?? colorForId(realId),
+          });
+        }
+        setViewers(others);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ name: user.name, color: user.color, avatarUrl: user.avatarUrl });
+        }
+      });
+
+    return () => {
+      sb.removeChannel(channel);
+    };
+  }, [live, submissionId, user]);
+
   if (viewers.length === 0) return null;
-  const first = viewers.map((v) => v.split(" ")[0]);
+  const first = viewers.map((v) => v.name.split(" ")[0]);
   const text =
     viewers.length === 1
       ? `${first[0]} is also viewing`
@@ -33,14 +80,14 @@ export function RealtimeJudgePresence({
   return (
     <div className="mb-[22px] flex items-center gap-2.5">
       <div className="flex">
-        {viewers.slice(0, 3).map((name, i) => (
+        {viewers.slice(0, 3).map((v, i) => (
           <span
-            key={name}
-            className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-raised text-[10px] font-semibold text-canvas ${AVATAR_TINTS[i % AVATAR_TINTS.length]}`}
-            style={{ marginLeft: i === 0 ? 0 : -7 }}
-            title={name}
+            key={v.id}
+            className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-raised text-[10px] font-semibold text-canvas"
+            style={{ marginLeft: i === 0 ? 0 : -7, background: v.color }}
+            title={v.name}
           >
-            {initials(name)}
+            {initials(v.name)}
           </span>
         ))}
       </div>

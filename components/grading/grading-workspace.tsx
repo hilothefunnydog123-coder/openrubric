@@ -5,13 +5,14 @@ import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { ProfileMenu } from "@/components/app/profile-menu";
 import { useDemo } from "@/components/app/demo-store";
+import { useSession } from "@/lib/session";
 import { totalScore } from "@/lib/scoring";
 import { prettyUrl } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { DEFAULT_CRITERIA, CURRENT_JUDGE } from "@/lib/demo-data";
-import type { ProjectView } from "@/lib/types";
+import type { ProjectView, RubricCriterion } from "@/lib/types";
 
 import { AutosaveIndicator } from "./autosave-indicator";
 import { RealtimeJudgePresence } from "./realtime-judge-presence";
@@ -19,6 +20,8 @@ import { AIProjectSummaryCard } from "./ai-project-summary-card";
 import { SuggestedQuestionsCard } from "./suggested-questions-card";
 import { RubricScoreEditor } from "./rubric-score-editor";
 import { PresentationScoreEditor } from "./presentation-score-editor";
+import { ScreenshotsGithubCard } from "./screenshots-github-card";
+import { CollaborativeNotes } from "./collaborative-notes";
 import { GitHubTimelineCard } from "./github-timeline-card";
 import { OriginalityFlagCard } from "./originality-flag-card";
 
@@ -27,14 +30,19 @@ function ext(url: string | null): string {
   return url.startsWith("http") ? url : `https://${url}`;
 }
 
-export function GradingWorkspace({ project }: { project: ProjectView }) {
-  const { scoresFor, presentationFor, commentFor, setComment, isFinalized, finalizeSubmission } =
-    useDemo();
-  const [tab, setTab] = useState("rubric");
+export function GradingWorkspace({
+  project,
+  criteria = DEFAULT_CRITERIA,
+}: {
+  project: ProjectView;
+  criteria?: RubricCriterion[];
+}) {
+  const { scoresFor, presentationFor, isFinalized, finalizeSubmission } = useDemo();
+  const { user } = useSession();
+  const [tab, setTab] = useState("summary");
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "error">("idle");
 
-  const total = totalScore(scoresFor(project.id), DEFAULT_CRITERIA);
-  const comment = commentFor(project.id);
+  const total = totalScore(scoresFor(project.id), criteria);
   const submitted = isFinalized(project.id);
 
   async function submitFinal() {
@@ -45,10 +53,9 @@ export function GradingWorkspace({ project }: { project: ProjectView }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           submission_id: project.id,
-          judge_id: CURRENT_JUDGE.id,
+          judge_id: user?.id ?? CURRENT_JUDGE.id,
           scores: scoresFor(project.id),
           presentation: presentationFor(project.id),
-          comment: commentFor(project.id),
           is_final: true,
         }),
       });
@@ -108,6 +115,7 @@ export function GradingWorkspace({ project }: { project: ProjectView }) {
                 ? "Submitting…"
                 : "Submit final score"}
           </Button>
+          <ProfileMenu />
         </div>
       </div>
 
@@ -132,59 +140,73 @@ export function GradingWorkspace({ project }: { project: ProjectView }) {
 
           <div className="mb-2.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">Links</div>
           <div className="flex flex-col gap-[7px]">
-            {links.map((lk) => (
-              <a
-                key={lk.label}
-                href={ext(lk.url)}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between rounded-[9px] border border-line bg-surface px-3 py-2.5 text-[13px] text-ink transition-colors hover:border-ink"
-              >
-                <span>{lk.label}</span>
-                <span className="font-mono text-[11px] text-faint">{lk.url ? prettyUrl(lk.url) : "—"} ↗</span>
-              </a>
-            ))}
+            {links.map((lk) =>
+              lk.url ? (
+                <a
+                  key={lk.label}
+                  href={ext(lk.url)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col gap-0.5 rounded-[9px] border border-line bg-surface px-3 py-2.5 transition-colors hover:border-ink"
+                >
+                  <span className="flex items-center justify-between text-[13px] font-medium text-ink">
+                    {lk.label}
+                    <span className="text-faint">↗</span>
+                  </span>
+                  <span className="truncate font-mono text-[11px] text-faint">{prettyUrl(lk.url)}</span>
+                </a>
+              ) : (
+                <div
+                  key={lk.label}
+                  className="flex items-center justify-between rounded-[9px] border border-dashed border-line bg-surface px-3 py-2.5 text-[13px]"
+                >
+                  <span className="text-dim">{lk.label}</span>
+                  <span className="font-mono text-[11px] text-faint">N/A</span>
+                </div>
+              ),
+            )}
           </div>
         </aside>
 
-        {/* CENTER — workspace */}
+        {/* CENTER — workspace, organized into tabs */}
         <section className="min-w-0 px-6 pb-20 pt-6 md:px-[30px]">
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="mb-[22px]">
-              <TabsTrigger value="rubric">Rubric</TabsTrigger>
-              <TabsTrigger value="presentation">Presentation</TabsTrigger>
+            <TabsList className="mb-[22px] flex-wrap">
+              <TabsTrigger value="summary">Summary</TabsTrigger>
+              <TabsTrigger value="questions">Questions</TabsTrigger>
+              <TabsTrigger value="scoring">Scoring</TabsTrigger>
+              <TabsTrigger value="screenshots">Screenshots</TabsTrigger>
               <TabsTrigger value="comments">Comments</TabsTrigger>
             </TabsList>
 
-            <AIProjectSummaryCard ai={project.ai} />
-            <SuggestedQuestionsCard questions={project.ai.suggested_questions_json} />
+            <TabsContent value="summary">
+              <AIProjectSummaryCard ai={project.ai} />
+            </TabsContent>
 
-            <TabsContent value="rubric">
-              <RubricScoreEditor submissionId={project.id} criteria={DEFAULT_CRITERIA} />
+            <TabsContent value="questions">
+              <SuggestedQuestionsCard questions={project.ai.suggested_questions_json} />
             </TabsContent>
-            <TabsContent value="presentation">
-              <PresentationScoreEditor submissionId={project.id} />
-            </TabsContent>
-            <TabsContent value="comments">
-              <div className="rounded-[14px] border border-line bg-surface p-5">
-                <div className="mb-1.5 text-[15px] font-semibold">Your notes</div>
-                <p className="mb-3.5 text-[13px] text-dim">
-                  Private to you until you submit. The organizer sees these alongside your scores.
-                </p>
-                <Textarea
-                  value={comment}
-                  onChange={(e) => setComment(project.id, e.target.value)}
-                  placeholder="What stood out? What would you ask the team?"
-                  className="min-h-[140px]"
-                />
+
+            <TabsContent value="scoring">
+              <div className="flex flex-col gap-6">
+                <RubricScoreEditor submissionId={project.id} criteria={criteria} />
+                <PresentationScoreEditor submissionId={project.id} />
               </div>
+            </TabsContent>
+
+            <TabsContent value="screenshots">
+              <ScreenshotsGithubCard project={project} />
+            </TabsContent>
+
+            <TabsContent value="comments">
+              <CollaborativeNotes submissionId={project.id} />
             </TabsContent>
           </Tabs>
         </section>
 
         {/* RIGHT — evidence */}
         <aside className="border-t border-line bg-raised p-6 md:border-l md:border-t-0">
-          <RealtimeJudgePresence />
+          <RealtimeJudgePresence submissionId={project.id} />
           <AutosaveIndicator variant="chip" />
           <GitHubTimelineCard scan={project.scan} />
           <OriginalityFlagCard scan={project.scan} />

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ROUTES } from "@/lib/constants";
 
@@ -14,6 +15,14 @@ export function VerifyExperience({ token }: { token?: string }) {
   const [email, setEmail] = useState<string | null>(null);
   const reduce = useReducedMotion();
   const ran = useRef(false);
+  const router = useRouter();
+
+  // On success, the magic link signs you straight into the workspace.
+  useEffect(() => {
+    if (status !== "success") return;
+    const t = setTimeout(() => router.push(ROUTES.getStarted), 1500);
+    return () => clearTimeout(t);
+  }, [status, router]);
 
   useEffect(() => {
     if (ran.current) return;
@@ -85,10 +94,10 @@ export function VerifyExperience({ token }: { token?: string }) {
                   className="mt-7"
                 >
                   <Link
-                    href={ROUTES.judgeDashboard}
+                    href={ROUTES.getStarted}
                     className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[14px] font-semibold text-black transition-transform hover:scale-[1.03] active:scale-95"
                   >
-                    Continue to your workspace
+                    Continue
                     <span className="transition-transform group-hover:translate-x-0.5">→</span>
                   </Link>
                 </motion.div>

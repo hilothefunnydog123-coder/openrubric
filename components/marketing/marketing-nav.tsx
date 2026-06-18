@@ -55,7 +55,7 @@ export function MarketingNav() {
             Sign in
           </Link>
           <Button asChild size="sm">
-            <Link href={ROUTES.organize}>Organize a hackathon</Link>
+            <Link href={ROUTES.signUp}>Get started</Link>
           </Button>
         </div>
       </nav>

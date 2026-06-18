@@ -3,6 +3,11 @@ import { AuthCard } from "@/components/app/auth-card";
 
 export const metadata: Metadata = { title: "Create your account" };
 
-export default function SignUpPage() {
-  return <AuthCard mode="sign-up" />;
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ invite?: string; email?: string }>;
+}) {
+  const { invite, email } = await searchParams;
+  return <AuthCard mode="sign-up" invite={invite} inviteEmail={email} />;
 }

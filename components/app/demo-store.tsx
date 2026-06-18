@@ -24,6 +24,7 @@ import {
   useState,
 } from "react";
 import { SEED_COMMENTS, SEED_PRESENTATION, SEED_SCORES, CURRENT_JUDGE } from "@/lib/demo-data";
+import { useSession } from "@/lib/session";
 import type { AutosaveStatus, PresentationMap, ScoreMap } from "@/lib/types";
 
 interface DemoContextValue {
@@ -57,6 +58,11 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydrated = useRef(false);
+
+  // Attribute autosaves to the real logged-in judge (falls back to the demo id).
+  const { user } = useSession();
+  const judgeIdRef = useRef<string>(CURRENT_JUDGE.id);
+  judgeIdRef.current = user?.id ?? CURRENT_JUDGE.id;
 
   // Latest-value refs so the debounced save always POSTs current state.
   const scoresRef = useRef(scores);
@@ -109,7 +115,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             submission_id: submissionId,
-            judge_id: CURRENT_JUDGE.id,
+            judge_id: judgeIdRef.current,
             scores: scoresRef.current[submissionId] ?? {},
             presentation: presentationRef.current[submissionId] ?? {},
             comment: commentsRef.current[submissionId] ?? "",

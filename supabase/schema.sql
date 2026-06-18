@@ -268,21 +268,54 @@ create policy "profiles_self" on profiles for update to authenticated using (id 
 -- Auth → profile bridge. Every new Supabase user gets a profile row, pulling
 -- full_name + role from the sign-up metadata set by the OpenRubric auth form.
 -- ============================================================================
-create or replace function handle_new_user() returns trigger as $$
+-- security definer + an explicit search_path so the public.user_role type and
+-- public.profiles table resolve when the trigger runs in the Auth context.
+-- Without these, signups fail with "Database error saving new user" (HTTP 500).
+create or replace function handle_new_user() returns trigger
+  language plpgsql
+  security definer
+  set search_path = public
+as $$
 begin
   insert into public.profiles (id, email, full_name, role)
   values (
     new.id,
     coalesce(new.email, ''),
     coalesce(new.raw_user_meta_data ->> 'full_name', ''),
-    coalesce((new.raw_user_meta_data ->> 'role')::user_role, 'judge')
+    coalesce((new.raw_user_meta_data ->> 'role')::public.user_role, 'judge')
   )
   on conflict (id) do nothing;
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+-- ============================================================================
+-- invitations — organizer invites a judge by email. The accept link carries a
+-- token; signing up with the invited email assigns the judge role + assignments.
+-- ============================================================================
+create table if not exists invitations (
+  id            uuid primary key default gen_random_uuid(),
+  hackathon_id  uuid references hackathons (id) on delete cascade,
+  email         text not null,
+  role          user_role not null default 'judge',
+  token         text unique not null,
+  tracks        text[] not null default '{}',
+  status        text not null default 'pending', -- pending | accepted
+  invited_by    uuid references profiles (id) on delete set null,
+  created_at    timestamptz not null default now(),
+  accepted_at   timestamptz
+);
+create index if not exists invitations_email_idx on invitations (lower(email));
+create index if not exists invitations_token_idx on invitations (token);
+
+alter table invitations enable row level security;
+-- Organizers manage invitations they created; the accept flow runs via the
+-- service-role key on the server (which bypasses RLS), so no public policy is needed.
+drop policy if exists "own_invitations" on invitations;
+create policy "own_invitations" on invitations for all to authenticated
+  using (invited_by = auth.uid()) with check (invited_by = auth.uid());

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Geist, Geist_Mono } from "next/font/google";
 import { DemoProvider } from "@/components/app/demo-store";
+import { SessionProvider } from "@/lib/session";
 import "./globals.css";
 
 // Editorial serif — landing headlines only.
@@ -63,7 +64,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${sans.variable} ${serif.variable} ${mono.variable}`}
     >
       <body>
-        <DemoProvider>{children}</DemoProvider>
+        <SessionProvider>
+          <DemoProvider>{children}</DemoProvider>
+        </SessionProvider>
       </body>
     </html>
   );

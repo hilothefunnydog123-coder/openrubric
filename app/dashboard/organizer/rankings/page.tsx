@@ -5,14 +5,17 @@ import { RankingsTable } from "@/components/rankings/rankings-table";
 import { TrackWinnersPanel } from "@/components/rankings/track-winners-panel";
 import { ScoreBreakdownChart } from "@/components/rankings/score-breakdown-chart";
 import { ExportButton } from "@/components/rankings/export-button";
-import { DEMO_PROJECTS, DEMO_REVIEW_CASES } from "@/lib/demo-data";
+import { getActiveHackathon, listProjectViews } from "@/lib/live-data";
 import { rankProjects, suggestedOverallWinner, trackWinners } from "@/lib/scoring";
+import type { ReviewCase } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Organizer · Rankings" };
+export const dynamic = "force-dynamic";
 
-export default function RankingsPage() {
-  const projects = DEMO_PROJECTS;
-  const reviewCases = DEMO_REVIEW_CASES;
+export default async function RankingsPage() {
+  const hackathon = await getActiveHackathon();
+  const projects = hackathon ? await listProjectViews(hackathon.id) : [];
+  const reviewCases: ReviewCase[] = [];
 
   const ranked = rankProjects(projects, reviewCases);
   const winners = trackWinners(projects, reviewCases);

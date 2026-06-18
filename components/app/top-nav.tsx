@@ -1,4 +1,5 @@
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { ProfileMenu } from "@/components/app/profile-menu";
 
 /** Sticky, blurred page header used across dashboard screens. */
 export function TopNav({
@@ -16,7 +17,10 @@ export function TopNav({
         <Eyebrow className="mb-1.5">{eyebrow}</Eyebrow>
         <h1 className="text-2xl font-semibold tracking-[-0.02em]">{title}</h1>
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
+      <div className="flex flex-wrap items-center gap-2.5">
+        {actions}
+        <ProfileMenu />
+      </div>
     </div>
   );
 }

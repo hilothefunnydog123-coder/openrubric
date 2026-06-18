@@ -13,6 +13,7 @@ export const ROUTES = {
   signIn: "/sign-in",
   signUp: "/sign-up",
   verify: "/verify",
+  getStarted: "/get-started",
   organize: "/organize",
   organizerImport: "/organizer/import",
   organizerDashboard: "/dashboard/organizer",

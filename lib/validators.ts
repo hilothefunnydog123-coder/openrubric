@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { passwordMeetsRules } from "./password";
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 export const roleSchema = z.enum(["organizer", "judge", "participant"]);
@@ -16,7 +17,9 @@ export const signInSchema = z.object({
 export const signUpSchema = z.object({
   fullName: z.string().min(2, "Tell us your name"),
   email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "At least 8 characters"),
+  password: z
+    .string()
+    .refine(passwordMeetsRules, "Password must meet all the requirements below"),
   role: roleSchema,
 });
 
