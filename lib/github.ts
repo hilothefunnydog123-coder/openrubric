@@ -150,11 +150,21 @@ export async function scanRepository(input: ScanInput): Promise<GithubScan> {
     const start = new Date(input.eventStart).getTime();
     const deadline = new Date(input.submissionDeadline).getTime();
 
-    const [repo, commits, contributors] = await Promise.all([
+    const [repo, commits, contributors, languages] = await Promise.all([
       gh<{ created_at: string }>(`/repos/${parsed.owner}/${parsed.repo}`, token),
       gh<GhCommit[]>(`/repos/${parsed.owner}/${parsed.repo}/commits?per_page=100`, token),
       gh<{ login: string }[]>(`/repos/${parsed.owner}/${parsed.repo}/contributors?per_page=100`, token).catch(() => []),
+      gh<Record<string, number>>(`/repos/${parsed.owner}/${parsed.repo}/languages`, token).catch(() => ({})),
     ]);
+
+    // Language breakdown → [{ name, pct }] sorted by share (desc).
+    const langTotal = Object.values(languages).reduce((a, b) => a + b, 0);
+    const languages_json =
+      langTotal > 0
+        ? Object.entries(languages)
+            .map(([name, bytes]) => ({ name, pct: Math.round((bytes / langTotal) * 1000) / 10 }))
+            .sort((a, b) => b.pct - a.pct)
+        : [];
 
     const dates = commits
       .map((c) => c.commit.author?.date)
@@ -222,6 +232,7 @@ export async function scanRepository(input: ScanInput): Promise<GithubScan> {
       flags_json: flags,
       review_priority: priority,
       summary: reviewNote(metrics, priority),
+      languages_json,
       created_at: new Date().toISOString(),
     };
   } catch {

@@ -1,4 +1,3 @@
-import { TimelineBadge } from "@/components/ui/badge";
 import type { GithubScan, ReviewPriority } from "@/lib/types";
 
 const TONE_DOT: Record<ReviewPriority, string> = {
@@ -15,7 +14,6 @@ export function GitHubTimelineCard({ scan }: { scan: GithubScan }) {
         <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-dim">
           GitHub timeline
         </span>
-        <TimelineBadge priority={scan.review_priority} />
       </div>
       <div>
         {scan.timeline_json.map((ev, i) => (

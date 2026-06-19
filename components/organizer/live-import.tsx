@@ -1,10 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+/** How often we re-pull the Devpost gallery once a URL is saved. */
+const AUTO_IMPORT_MS = 2 * 60 * 1000;
 
 type Stage = "pending" | "importing" | "scanning" | "done" | "error";
 type Row = { id?: string; name: string; stage: Stage };
@@ -41,21 +44,29 @@ function parseCsv(text: string) {
   });
 }
 
-export function LiveImport({ hackathonId }: { hackathonId: string }) {
+export function LiveImport({
+  hackathonId,
+  devpostUrl = null,
+}: {
+  hackathonId: string;
+  devpostUrl?: string | null;
+}) {
   const router = useRouter();
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(devpostUrl ?? "");
   const [rows, setRows] = useState<Row[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const busyRef = useRef(false); // guards the auto-import interval against overlap
 
   /** Persist projects, then scan+summarize each one sequentially so they stream in. */
-  async function ingest(projects: Record<string, unknown>[]) {
+  async function ingest(projects: Record<string, unknown>[], auto = false) {
     if (!projects.length) {
-      setNote("Nothing to import. Try a different source or add projects manually.");
+      if (!auto) setNote("Nothing to import. Try a different source or add projects manually.");
       return;
     }
     setBusy(true);
+    busyRef.current = true;
     setNote(null);
     setRows(projects.map((p) => ({ name: String(p.project_name ?? "Untitled"), stage: "importing" })));
 
@@ -68,8 +79,17 @@ export function LiveImport({ hackathonId }: { hackathonId: string }) {
     const data = await res.json().catch(() => ({}));
     if (!data.ok || !data.submissions) {
       setBusy(false);
-      setNote(typeof data.error === "string" ? data.error : "Import failed.");
+      busyRef.current = false;
+      if (!auto) setNote(typeof data.error === "string" ? data.error : "Import failed.");
       setRows([]);
+      return;
+    }
+    // Dedup on the server may leave nothing new — that's the steady state when polling.
+    if (data.submissions.length === 0) {
+      setBusy(false);
+      busyRef.current = false;
+      setRows([]);
+      setNote(auto ? null : "All caught up — no new submissions.");
       return;
     }
     setRows(data.submissions.map((s: { id: string; project_name: string }) => ({
@@ -91,32 +111,58 @@ export function LiveImport({ hackathonId }: { hackathonId: string }) {
     }
 
     setBusy(false);
-    setNote(`Imported ${data.submissions.length} projects.`);
+    busyRef.current = false;
+    setNote(`Imported ${data.submissions.length} new project${data.submissions.length === 1 ? "" : "s"}.`);
     router.refresh();
   }
 
-  async function importDevpost() {
-    if (!url.trim()) return;
-    setBusy(true);
-    setNote("Scanning the Devpost gallery…");
-    try {
-      const res = await fetch("/api/import/devpost", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!data.ok || !data.projects?.length) {
+  const importDevpost = useCallback(
+    async (targetUrl?: string, auto = false) => {
+      const source = (targetUrl ?? "").trim();
+      if (!source) return;
+      if (auto && busyRef.current) return; // don't stack auto-runs
+      busyRef.current = true;
+      setBusy(true);
+      if (!auto) setNote("Scanning the Devpost gallery…");
+      try {
+        // Persist the URL so it keeps auto-importing on future visits.
+        fetch(`/api/hackathons/${hackathonId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ devpost_url: source }),
+        }).catch(() => {});
+
+        const res = await fetch("/api/import/devpost", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: source }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!data.ok || !data.projects?.length) {
+          setBusy(false);
+          busyRef.current = false;
+          if (!auto) setNote(data.fallback || "Couldn't import from Devpost. Upload a CSV instead.");
+          return;
+        }
+        await ingest(data.projects, auto);
+      } catch {
         setBusy(false);
-        setNote(data.fallback || "Couldn't import from Devpost. Upload a CSV instead.");
-        return;
+        busyRef.current = false;
+        if (!auto) setNote("Couldn't reach Devpost. Upload a CSV instead.");
       }
-      await ingest(data.projects);
-    } catch {
-      setBusy(false);
-      setNote("Couldn't reach Devpost. Upload a CSV instead.");
-    }
-  }
+    },
+    // ingest is stable enough for our use; hackathonId is the only external dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hackathonId],
+  );
+
+  // Once a Devpost URL is saved, pull new submissions now and every couple of minutes.
+  useEffect(() => {
+    if (!devpostUrl) return;
+    void importDevpost(devpostUrl, true);
+    const id = setInterval(() => void importDevpost(devpostUrl, true), AUTO_IMPORT_MS);
+    return () => clearInterval(id);
+  }, [devpostUrl, importDevpost]);
 
   function onCsv(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -138,14 +184,20 @@ export function LiveImport({ hackathonId }: { hackathonId: string }) {
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="your-hackathon.devpost.com"
+          placeholder="yourhackathon.devpost.com"
           disabled={busy}
-          className="flex-1 border-none bg-transparent text-sm outline-none"
+          className="flex-1 border-none bg-transparent text-sm outline-none placeholder:text-faint"
         />
-        <Button size="sm" onClick={importDevpost} disabled={busy}>
+        <Button size="sm" onClick={() => importDevpost(url)} disabled={busy || !url.trim()}>
           {busy ? "Importing…" : "Import"}
         </Button>
       </div>
+
+      <p className="mt-2 text-[11.5px] leading-[1.5] text-faint">
+        {devpostUrl
+          ? "Auto-importing new submissions every couple of minutes."
+          : "Optional — add it whenever you have it. Once imported, new submissions keep flowing in automatically."}
+      </p>
 
       <button
         type="button"

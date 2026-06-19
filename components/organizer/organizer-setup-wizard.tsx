@@ -25,10 +25,11 @@ const SUBS = [
   "Add judges and decide what each one scores.",
 ];
 
+// Devpost URL lives on the Import step (it's optional and usually added closer to the
+// deadline), not here in the basics.
 const FIELDS: { key: string; label: string; span2?: boolean; type?: string }[] = [
   { key: "name", label: "Hackathon name", span2: true },
-  { key: "website_url", label: "Website URL" },
-  { key: "devpost_url", label: "Devpost URL" },
+  { key: "website_url", label: "Website URL", span2: true },
   { key: "start_time", label: "Start time", type: "datetime-local" },
   { key: "submission_deadline", label: "Submission deadline", type: "datetime-local" },
   { key: "judging_deadline", label: "Judging deadline", span2: true, type: "datetime-local" },
@@ -40,9 +41,9 @@ export function OrganizerSetupWizard({ initialStep = 1 }: { initialStep?: number
 
   // Form state preserved across steps.
   const [form, setForm] = useState<Record<string, string>>({
-    name: "Bay Area AI Hacks 2026",
-    website_url: "bayareaaihacks.org",
-    devpost_url: "bayareaaihacks.devpost.com",
+    name: "",
+    website_url: "",
+    devpost_url: "",
     start_time: "2026-02-14T09:00",
     submission_deadline: "2026-02-16T18:00",
     judging_deadline: "2026-02-17T20:00",
@@ -53,7 +54,7 @@ export function OrganizerSetupWizard({ initialStep = 1 }: { initialStep?: number
     DEFAULT_CRITERIA.map((c) => ({ name: c.name, max: c.max_points })),
   );
   const [tracks, setTracks] = useState<string[]>(DEFAULT_TRACK_NAMES);
-  const [judges, setJudges] = useState(DEMO_JUDGE_ROWS);
+  const [judges, setJudges] = useState<typeof DEMO_JUDGE_ROWS>([]);
 
   const isLast = step === 5;
 

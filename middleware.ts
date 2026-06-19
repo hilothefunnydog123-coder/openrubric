@@ -10,6 +10,12 @@ export async function middleware(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return NextResponse.next();
 
+  // Only do auth work when a Supabase session cookie is actually present. Anonymous
+  // visitors skip the network refresh entirely, and the "invalid refresh token" log
+  // (a harmless stale-cookie artifact) is confined to genuinely stale sessions.
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
+  if (!hasAuthCookie) return NextResponse.next();
+
   const { createServerClient } = await import("@supabase/ssr");
 
   let response = NextResponse.next({ request });

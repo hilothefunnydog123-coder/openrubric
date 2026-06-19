@@ -10,7 +10,7 @@ export default function SubmitPage() {
     <div className="min-h-screen bg-canvas">
       <SimpleHeader />
       <div className="mx-auto w-full max-w-wizard px-8 pb-20 pt-10">
-        <Eyebrow className="mb-2">Participant · Bay Area AI Hacks 2026</Eyebrow>
+        <Eyebrow className="mb-2">Participant · OpenRubric</Eyebrow>
         <h1 className="mb-8 text-[28px] font-semibold tracking-[-0.025em]">Submit your project</h1>
         <SubmitForm />
       </div>

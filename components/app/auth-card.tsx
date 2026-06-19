@@ -19,7 +19,7 @@ import { GmailIcon } from "@/components/ui/gmail-icon";
 import { PASSWORD_RULES } from "@/lib/password";
 import { cn } from "@/lib/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { ROUTES } from "@/lib/constants";
+import { ROUTES, PENDING_SIGNUP_KEY } from "@/lib/constants";
 import { signInSchema, signUpSchema, type SignInValues, type SignUpValues } from "@/lib/validators";
 
 /** Turn raw Supabase auth errors into clear, human-readable messages. */
@@ -76,8 +76,12 @@ export function AuthCard({
   }
 
   function openWorkspace() {
-    // Invited judges go straight to judging; everyone else picks a role.
-    window.open(invite ? ROUTES.judgeDashboard : ROUTES.getStarted, "_blank", "noopener,noreferrer");
+    // Invited judges land on a tailored "you're a judge for X" welcome; everyone
+    // else gets the organizer start screen.
+    const dest = invite
+      ? `${ROUTES.getStarted}?invite=${encodeURIComponent(invite)}`
+      : ROUTES.getStarted;
+    window.open(dest, "_blank", "noopener,noreferrer");
   }
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,12 +116,13 @@ export function AuthCard({
       return;
     }
     setPending(true);
+    const inviteQs = invite ? `?invite=${encodeURIComponent(invite)}` : "";
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo:
           typeof window !== "undefined"
-            ? `${window.location.origin}${ROUTES.getStarted}`
+            ? `${window.location.origin}${ROUTES.getStarted}${inviteQs}`
             : undefined,
       },
     });
@@ -177,30 +182,32 @@ export function AuthCard({
     }
   }
 
-  /** Verify the typed 6-digit code; on success animate, then continue. */
+  /**
+   * Verify the typed 6-digit code. Only NOW do we create the account (so unverified
+   * emails never reach Supabase), then sign in to establish the session.
+   */
   async function verifyCode(submitted: string) {
     if (!verifyToken || submitted.length < 6 || verifying || codeStatus === "success") return;
     setVerifying(true);
     setCodeStatus("idle");
     try {
-      const res = await fetch("/api/auth/verify-code", {
+      const values = signUp.getValues();
+      const email = sentTo ?? values.email;
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: verifyToken, code: submitted }),
+        body: JSON.stringify({
+          token: verifyToken,
+          code: submitted,
+          email,
+          password: values.password,
+          fullName: values.fullName,
+          role: values.role,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       setVerifying(false);
-      if (res.ok && data.ok) {
-        // Invited judge: accept the invitation (marks accepted, pins judge role).
-        if (invite) {
-          await fetch("/api/judges/accept", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: invite, email: data.email }),
-          }).catch(() => {});
-        }
-        setCodeStatus("success");
-      } else {
+      if (!res.ok || !data.ok) {
         setCodeStatus("error");
         setCode("");
         showToast(
@@ -208,7 +215,42 @@ export function AuthCard({
             ? "That code expired — tap resend for a new one."
             : "That code isn't right. Check your email and try again.",
         );
+        return;
       }
+
+      // Account exists (or was just created) → sign in to set the session.
+      const supabase = getSupabaseBrowserClient();
+      if (supabase) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: values.password,
+        });
+        if (signInError) {
+          setCodeStatus("error");
+          showToast(
+            data.existed
+              ? "This email already has an account — please sign in with your existing password."
+              : friendlyAuthError(signInError.message),
+          );
+          return;
+        }
+      }
+
+      // Invited judge: accept the invitation (marks accepted, pins judge role).
+      if (invite) {
+        await fetch("/api/judges/accept", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: invite, email }),
+        }).catch(() => {});
+      }
+      // Verified here — clear the pending stash so a later magic-link click is a no-op.
+      try {
+        window.localStorage.removeItem(PENDING_SIGNUP_KEY);
+      } catch {
+        /* ignore */
+      }
+      setCodeStatus("success");
     } catch {
       setVerifying(false);
       setCodeStatus("error");
@@ -219,25 +261,26 @@ export function AuthCard({
   async function onSignUp(values: SignUpValues) {
     setError(null);
     setInfo(null);
-    const supabase = getSupabaseBrowserClient();
-
-    if (supabase) {
-      setPending(true);
-      const { error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: { data: { full_name: values.fullName, role: values.role } },
-      });
-      setPending(false);
-      // "Already registered" is fine here — they can still verify by email code and
-      // continue. Any *other* error (bad email, rate limit…) stops the flow.
-      if (error && !/already (registered|exists)/i.test(error.message)) {
-        showToast(friendlyAuthError(error.message));
-        return;
-      }
+    // No account is created yet — we only email a 6-digit code and open the
+    // verification panel. The Supabase user is created after the code is verified
+    // (see verifyCode → /api/auth/register), so unverified emails never get stored.
+    //
+    // Briefly hold the details in this browser so the email's "Continue" magic link
+    // (opened in the same browser) can finish the signup without re-typing anything.
+    try {
+      window.localStorage.setItem(
+        PENDING_SIGNUP_KEY,
+        JSON.stringify({
+          email: values.email.toLowerCase().trim(),
+          fullName: values.fullName,
+          role: values.role,
+          password: values.password,
+          invite: invite ?? null,
+        }),
+      );
+    } catch {
+      /* storage may be unavailable — the typed-code path still works */
     }
-
-    // Always email a 6-digit code and open the verification panel.
     await requestVerification(values.email);
   }
 
@@ -313,7 +356,7 @@ export function AuthCard({
                   <h1 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">
                     Enter verification code
                   </h1>
-                  <p className="mb-5 text-sm leading-relaxed text-dim">
+                  <p className="mb-4 text-sm leading-relaxed text-dim">
                     Enter the 6-digit code we sent to{" "}
                     <span className="font-medium text-ink">{sentTo}</span>.
                   </p>
@@ -329,9 +372,9 @@ export function AuthCard({
                     disabled={verifying}
                   />
 
-                  <p className="mb-4 mt-3 h-4 font-mono text-[11px] text-dim">
-                    {verifying ? "Verifying…" : ""}
-                  </p>
+                  {verifying && (
+                    <p className="mb-3 mt-3 font-mono text-[11px] text-dim">Verifying…</p>
+                  )}
 
                   {demoCode && (
                     <div className="mb-4 flex items-center justify-center gap-2">
@@ -359,11 +402,15 @@ export function AuthCard({
                     )}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface px-4 py-3 text-[14px] font-medium text-ink shadow-sm transition-colors hover:border-ink"
+                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface px-4 py-3 text-[14px] font-medium text-ink shadow-sm transition-colors hover:border-ink"
                   >
                     <GmailIcon className="h-[18px] w-[18px]" />
                     Go to Gmail &amp; find the code
                   </a>
+
+                  <p className="mb-4 mt-2.5 text-[11.5px] text-faint">
+                    Don&apos;t see it? Check your spam or promotions folder.
+                  </p>
 
                   <div className="flex items-center justify-center gap-3 text-[13px]">
                     <button

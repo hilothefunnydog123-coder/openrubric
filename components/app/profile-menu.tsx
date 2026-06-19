@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -207,7 +208,11 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     }
   }
 
-  return (
+  // Portal to <body> so the modal centers on the viewport — rendering it inside the
+  // backdrop-blurred TopNav would anchor `position: fixed` to that header instead.
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -301,6 +306,7 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
           </button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }

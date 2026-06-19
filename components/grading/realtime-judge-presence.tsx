@@ -37,36 +37,49 @@ export function RealtimeJudgePresence({ submissionId }: { submissionId: string }
     const sb = getSupabaseBrowserClient();
     if (!sb || !user) return;
 
-    const channel = sb.channel(`grade:${submissionId}`, {
-      config: { presence: { key: `view-${user.id}` } },
-    });
-
-    channel
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState() as Record<string, Array<Record<string, unknown>>>;
-        const others: Viewer[] = [];
-        const seen = new Set<string>();
-        for (const [key, metas] of Object.entries(state)) {
-          const realId = key.replace(/^view-/, "");
-          if (realId === user.id || seen.has(realId)) continue;
-          seen.add(realId);
-          const m = (metas[0] ?? {}) as Record<string, unknown>;
-          others.push({
-            id: realId,
-            name: (m.name as string) ?? "Judge",
-            color: (m.color as string) ?? colorForId(realId),
-          });
-        }
-        setViewers(others);
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ name: user.name, color: user.color, avatarUrl: user.avatarUrl });
-        }
+    let channel: ReturnType<NonNullable<ReturnType<typeof getSupabaseBrowserClient>>["channel"]> | null = null;
+    try {
+      channel = sb.channel(`grade:${submissionId}`, {
+        config: { presence: { key: `view-${user.id}` } },
       });
 
+      channel
+        .on("presence", { event: "sync" }, () => {
+          try {
+            const state = channel!.presenceState() as Record<string, Array<Record<string, unknown>>>;
+            const others: Viewer[] = [];
+            const seen = new Set<string>();
+            for (const [key, metas] of Object.entries(state)) {
+              const realId = key.replace(/^view-/, "");
+              if (realId === user.id || seen.has(realId)) continue;
+              seen.add(realId);
+              const m = (metas[0] ?? {}) as Record<string, unknown>;
+              others.push({
+                id: realId,
+                name: (m.name as string) ?? "Judge",
+                color: (m.color as string) ?? colorForId(realId),
+              });
+            }
+            setViewers(others);
+          } catch {
+            /* ignore */
+          }
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            channel!.track({ name: user.name, color: user.color, avatarUrl: user.avatarUrl }).catch(() => {});
+          }
+        });
+    } catch {
+      /* realtime unavailable — presence just won't show */
+    }
+
     return () => {
-      sb.removeChannel(channel);
+      try {
+        if (channel) sb.removeChannel(channel);
+      } catch {
+        /* ignore */
+      }
     };
   }, [live, submissionId, user]);
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SimpleHeader } from "@/components/app/simple-header";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { Badge, TimelineBadge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { prettyUrl } from "@/lib/utils";
 import { getProjectOr404 } from "@/lib/demo-data";
 
@@ -32,7 +32,6 @@ export default function TeamDashboardPage() {
                 <div className="text-[20px] font-semibold tracking-[-0.01em]">{project.project_name}</div>
                 <div className="mt-1 font-mono text-[11.5px] text-dim">{project.team_name}</div>
               </div>
-              <TimelineBadge priority={project.scan.review_priority} withDot />
             </div>
             <Badge variant="accent" className="mb-4">
               {project.track}
@@ -66,10 +65,6 @@ export default function TeamDashboardPage() {
                 <span className="font-mono text-[13px] font-semibold">
                   {project.judgesDone} / {project.judgesTotal}
                 </span>
-              </div>
-              <div className="flex items-center justify-between pt-3">
-                <span className="text-[13.5px] text-ink">Timeline review</span>
-                <TimelineBadge priority={project.scan.review_priority} />
               </div>
             </div>
 

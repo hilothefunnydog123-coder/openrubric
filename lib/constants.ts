@@ -23,3 +23,10 @@ export const ROUTES = {
   submit: "/submit",
   project: (id: string) => `/judge/project/${id}`,
 } as const;
+
+/**
+ * localStorage key holding a not-yet-created signup ({email, fullName, role,
+ * password, invite}) between submitting the form and verifying the email. Lets the
+ * email "Continue" magic link finish the deferred signup in the same browser.
+ */
+export const PENDING_SIGNUP_KEY = "openrubric-pending-signup";

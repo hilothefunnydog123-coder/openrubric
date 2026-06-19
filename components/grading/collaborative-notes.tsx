@@ -113,62 +113,77 @@ export function CollaborativeNotes({ submissionId }: { submissionId: string }) {
     };
   }, [submissionId]);
 
-  // Realtime channel: presence + typing + new comments.
+  // Realtime channel: presence + typing + new comments. Fully guarded — if Realtime
+  // is unavailable/blocked on the project, the notes still work (post + reload), it
+  // just won't live-sync. Nothing here can crash the Comments tab.
   useEffect(() => {
     if (!live) return;
     const sb = getSupabaseBrowserClient();
     if (!sb) return;
 
-    const channel = sb.channel(`grade:${submissionId}`, {
-      config: { presence: { key: me.id } },
-    });
-    channelRef.current = channel;
+    let channel: ReturnType<NonNullable<ReturnType<typeof getSupabaseBrowserClient>>["channel"]> | null = null;
+    let prune: ReturnType<typeof setInterval> | null = null;
 
-    channel
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState() as Record<string, Array<Record<string, unknown>>>;
-        const next: Viewer[] = Object.entries(state).map(([id, metas]) => {
-          const m = (metas[0] ?? {}) as Partial<Viewer>;
-          return {
-            id,
-            name: (m.name as string) ?? "Judge",
-            color: (m.color as string) ?? colorForId(id),
-            avatarUrl: (m.avatarUrl as string | null) ?? null,
-          };
+    try {
+      channel = sb.channel(`grade:${submissionId}`, { config: { presence: { key: me.id } } });
+      channelRef.current = channel;
+
+      channel
+        .on("presence", { event: "sync" }, () => {
+          try {
+            const state = channel!.presenceState() as Record<string, Array<Record<string, unknown>>>;
+            const next: Viewer[] = Object.entries(state).map(([id, metas]) => {
+              const m = (metas[0] ?? {}) as Partial<Viewer>;
+              return {
+                id,
+                name: (m.name as string) ?? "Judge",
+                color: (m.color as string) ?? colorForId(id),
+                avatarUrl: (m.avatarUrl as string | null) ?? null,
+              };
+            });
+            setViewers(next);
+          } catch {
+            /* ignore presence parse errors */
+          }
+        })
+        .on("broadcast", { event: "comment" }, ({ payload }) => {
+          const c = payload as CommentDTO;
+          if (c?.id) setComments((prev) => (prev.some((x) => x.id === c.id) ? prev : [...prev, c]));
+        })
+        .on("broadcast", { event: "typing" }, ({ payload }) => {
+          const v = payload as Viewer;
+          if (!v?.id || v.id === me.id) return;
+          typingRef.current.set(v.id, { viewer: v, at: Date.now() });
+          setTyping(Array.from(typingRef.current.values()).map((e) => e.viewer));
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            channel!.track({ name: me.name, color: me.color, avatarUrl: me.avatarUrl }).catch(() => {});
+          }
         });
-        setViewers(next);
-      })
-      .on("broadcast", { event: "comment" }, ({ payload }) => {
-        const c = payload as CommentDTO;
-        setComments((prev) => (prev.some((x) => x.id === c.id) ? prev : [...prev, c]));
-      })
-      .on("broadcast", { event: "typing" }, ({ payload }) => {
-        const v = payload as Viewer;
-        if (v.id === me.id) return;
-        typingRef.current.set(v.id, { viewer: v, at: Date.now() });
-        setTyping(Array.from(typingRef.current.values()).map((e) => e.viewer));
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ name: me.name, color: me.color, avatarUrl: me.avatarUrl });
-        }
-      });
 
-    const prune = setInterval(() => {
-      const now = Date.now();
-      let changed = false;
-      for (const [id, e] of typingRef.current) {
-        if (now - e.at > 2600) {
-          typingRef.current.delete(id);
-          changed = true;
+      prune = setInterval(() => {
+        const now = Date.now();
+        let changed = false;
+        for (const [id, e] of typingRef.current) {
+          if (now - e.at > 2600) {
+            typingRef.current.delete(id);
+            changed = true;
+          }
         }
-      }
-      if (changed) setTyping(Array.from(typingRef.current.values()).map((e) => e.viewer));
-    }, 1000);
+        if (changed) setTyping(Array.from(typingRef.current.values()).map((e) => e.viewer));
+      }, 1000);
+    } catch {
+      /* realtime unavailable — notes still post + reload, just no live sync */
+    }
 
     return () => {
-      clearInterval(prune);
-      sb.removeChannel(channel);
+      if (prune) clearInterval(prune);
+      try {
+        if (channel) sb.removeChannel(channel);
+      } catch {
+        /* ignore */
+      }
       channelRef.current = null;
     };
   }, [live, submissionId, me.id, me.name, me.color, me.avatarUrl]);

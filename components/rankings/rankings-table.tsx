@@ -1,8 +1,7 @@
-import { TimelineBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { RankedProject } from "@/lib/scoring";
 
-const COLS = "grid-cols-[0.5fr_2fr_1.2fr_0.8fr_0.8fr_1.2fr]";
+const COLS = "grid-cols-[0.5fr_2.4fr_1.2fr_0.8fr_0.8fr]";
 
 export function RankingsTable({ ranked }: { ranked: RankedProject[] }) {
   return (
@@ -20,7 +19,6 @@ export function RankingsTable({ ranked }: { ranked: RankedProject[] }) {
             <span>Track</span>
             <span>Avg</span>
             <span>Judges</span>
-            <span>Timeline</span>
           </div>
           {ranked.map(({ project, rank, blocked }) => {
             const award = rank === 1 && !blocked ? "Suggested winner" : blocked ? "Review first" : null;
@@ -57,9 +55,6 @@ export function RankingsTable({ ranked }: { ranked: RankedProject[] }) {
                 <span className="font-mono text-[15px] font-bold">{project.othersAvg}</span>
                 <span className="font-mono text-[12px] text-dim">
                   {project.judgesDone} / {project.judgesTotal}
-                </span>
-                <span className="justify-self-start">
-                  <TimelineBadge priority={project.scan.review_priority} />
                 </span>
               </div>
             );

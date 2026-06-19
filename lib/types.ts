@@ -166,6 +166,8 @@ export interface GithubScan {
   flags_json: TimelineFlag[];
   review_priority: ReviewPriority;
   summary: string;
+  /** GitHub language breakdown for the repo, sorted by share. */
+  languages_json?: { name: string; pct: number }[];
   created_at: string;
 }
 
@@ -206,6 +208,8 @@ export interface ProjectView extends Submission {
   participants: Participant[];
   scan: GithubScan;
   ai: AiSummary;
+  /** Screenshot image URLs scraped from the public Devpost gallery. */
+  screenshots?: string[];
   /** Aggregate average across all judges (organizer-facing). */
   othersAvg: number;
   judgesDone: number;

@@ -21,7 +21,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: sub, error } = await service
     .from("submissions")
-    .select("id, hackathon_id, project_name, description, repo_url")
+    .select("*") // '*' so optional columns (built_with_json) don't error pre-migration
     .eq("id", id)
     .maybeSingle();
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -45,7 +45,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         submissionDeadline: hk?.submission_deadline ?? new Date().toISOString(),
       });
       await service.from("github_scans").delete().eq("submission_id", sub.id);
-      await service.from("github_scans").insert({
+      const scanBase = {
         submission_id: sub.id,
         repo_owner: scan.repo_owner,
         repo_name: scan.repo_name,
@@ -60,7 +60,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         flags_json: scan.flags_json,
         review_priority: scan.review_priority,
         summary: scan.summary,
-      });
+      };
+      // languages_json is newer; if that column is missing, retry without it.
+      const { error: scanErr } = await service
+        .from("github_scans")
+        .insert({ ...scanBase, languages_json: scan.languages_json ?? [] });
+      if (scanErr) await service.from("github_scans").insert(scanBase);
       result.scan = scan.review_priority;
     } catch (e) {
       result.scan = `error: ${e instanceof Error ? e.message : "scan failed"}`;
@@ -75,14 +80,24 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       description: sub.description,
       repoUrl: sub.repo_url,
     });
+    // Prefer Devpost's real "Built With" tags for the tech stack (they map to real
+    // logos); fall back to the AI's inferred tech only when Devpost gave us nothing.
+    const builtWith: string[] = Array.isArray(sub.built_with_json) ? sub.built_with_json : [];
+    if (builtWith.length) ai.tech = builtWith.slice(0, 8);
     await service.from("ai_summaries").delete().eq("submission_id", sub.id);
-    await service.from("ai_summaries").insert({
+    const base = {
       submission_id: sub.id,
       summary: ai.what || ai.summary,
       strengths_json: ai.strengths_json,
       weaknesses_json: ai.weaknesses_json,
       suggested_questions_json: ai.suggested_questions_json,
-    });
+    };
+    // Full row keeps the descriptive fields; if those columns don't exist yet
+    // (migration not run), fall back to the legacy row so the summary still saves.
+    const { error: aiErr } = await service
+      .from("ai_summaries")
+      .insert({ ...base, what: ai.what, who: ai.who, how: ai.how, tech_json: ai.tech });
+    if (aiErr) await service.from("ai_summaries").insert(base);
     result.summary = true;
   } catch {
     result.summary = false;

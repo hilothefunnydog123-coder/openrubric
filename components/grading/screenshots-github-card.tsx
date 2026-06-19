@@ -1,24 +1,12 @@
-import { getScreenshots } from "@/lib/demo-data";
 import { prettyUrl } from "@/lib/utils";
 import { TechIcon } from "@/components/ui/tech-icon";
 import type { ProjectView } from "@/lib/types";
 
 /**
- * Screenshots imported from Devpost + an embedded view of the GitHub repo.
- *
- * Demo data for now (gradient screenshot tiles + repo stats from the scan). The real
- * implementation will populate `screenshots` and repo metadata from the Devpost +
- * GitHub scrape — the markup here won't change, only the data source.
+ * Real screenshots scraped from the public Devpost gallery + an embedded view of the
+ * GitHub repo. When no screenshots were captured (CSV/manual import, or Devpost blocked
+ * the scrape), it shows a clear "no screenshots" state rather than fake tiles.
  */
-
-const TILE_GRADIENTS = [
-  "linear-gradient(135deg,#dbe4ff,#eef2ff)",
-  "linear-gradient(135deg,#e7f8ef,#f0fbf5)",
-  "linear-gradient(135deg,#fdeede,#fdf5ec)",
-  "linear-gradient(135deg,#efe7fb,#f6f1fd)",
-  "linear-gradient(135deg,#e6f6fb,#f0fafd)",
-  "linear-gradient(135deg,#fbe9ef,#fdf1f5)",
-];
 
 function ext(url: string | null): string {
   if (!url) return "#";
@@ -26,7 +14,7 @@ function ext(url: string | null): string {
 }
 
 export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
-  const shots = getScreenshots(project.id);
+  const shots = project.screenshots ?? [];
   const scan = project.scan;
   const contributors = scan.contributors_json ?? [];
 
@@ -44,24 +32,28 @@ export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
         </div>
 
         {shots.length === 0 ? (
-          <p className="text-[13px] text-dim">No screenshots were imported for this project.</p>
+          <p className="text-[13px] text-dim">
+            No screenshots were captured for this project. They&apos;re pulled from the public Devpost
+            gallery on import — CSV/manual entries won&apos;t have them.
+          </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {shots.map((caption, i) => (
-              <figure key={caption} className="overflow-hidden rounded-[10px] border border-line">
-                <div className="relative aspect-[4/3]" style={{ background: TILE_GRADIENTS[i % TILE_GRADIENTS.length] }}>
-                  {/* faux browser chrome */}
-                  <div className="flex items-center gap-1 px-2.5 py-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-black/15" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-black/15" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-black/15" />
-                  </div>
-                  <div className="absolute inset-x-3 bottom-3 top-7 rounded-md bg-white/45" />
-                </div>
-                <figcaption className="truncate border-t border-line bg-raised px-2.5 py-1.5 font-mono text-[10.5px] text-dim">
-                  {caption}
-                </figcaption>
-              </figure>
+            {shots.map((src, i) => (
+              <a
+                key={src}
+                href={src}
+                target="_blank"
+                rel="noreferrer"
+                className="group block overflow-hidden rounded-[10px] border border-line"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={`${project.project_name} screenshot ${i + 1}`}
+                  loading="lazy"
+                  className="aspect-[4/3] w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                />
+              </a>
             ))}
           </div>
         )}
@@ -88,9 +80,9 @@ export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
             </a>
             <p className="mt-1.5 text-[13px] leading-[1.55] text-dim">{project.ai.what}</p>
 
-            {project.ai.tech.length > 0 && (
+            {(project.ai.tech ?? []).length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {project.ai.tech.slice(0, 5).map((t) => (
+                {(project.ai.tech ?? []).slice(0, 8).map((t) => (
                   <span
                     key={t}
                     className="inline-flex items-center gap-1.5 rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-dim"
@@ -101,6 +93,8 @@ export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
                 ))}
               </div>
             )}
+
+            <LanguagesBar languages={scan.languages_json ?? []} />
 
             <div className="mt-4 grid grid-cols-3 gap-2 border-t border-line-soft pt-4">
               <Stat label="Commits" value={String(scan.total_commits)} />
@@ -121,6 +115,40 @@ export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
         ) : (
           <p className="text-[13px] text-dim">No repository linked — N/A.</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+const LANG_COLORS = ["#3178c6", "#f1e05a", "#2b7489", "#e34c26", "#563d7c", "#89e051", "#dea584", "#b07219"];
+
+/** GitHub-style stacked language breakdown bar + legend. */
+function LanguagesBar({ languages }: { languages: { name: string; pct: number }[] }) {
+  if (!languages.length) return null;
+  const top = languages.slice(0, 6);
+  return (
+    <div className="mt-4 border-t border-line-soft pt-4">
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.1em] text-faint">Languages</div>
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-sunken">
+        {top.map((l, i) => (
+          <span
+            key={l.name}
+            title={`${l.name} ${l.pct}%`}
+            style={{ width: `${l.pct}%`, background: LANG_COLORS[i % LANG_COLORS.length] }}
+          />
+        ))}
+      </div>
+      <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+        {top.map((l, i) => (
+          <span key={l.name} className="inline-flex items-center gap-1.5 text-[11.5px] text-dim">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: LANG_COLORS[i % LANG_COLORS.length] }}
+            />
+            <span className="font-medium text-ink">{l.name}</span>
+            <span className="font-mono text-faint">{l.pct}%</span>
+          </span>
+        ))}
       </div>
     </div>
   );

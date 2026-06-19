@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
-import { Button } from "@/components/ui/button";
+import { MarketingAuthButtons } from "./marketing-auth-buttons";
 import { ROUTES, SITE } from "@/lib/constants";
 
 const NAV_LINKS = [
@@ -48,15 +48,7 @@ export function MarketingNav() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href={ROUTES.signIn}
-            className="hidden whitespace-nowrap text-sm text-dim transition-colors hover:text-ink sm:inline"
-          >
-            Sign in
-          </Link>
-          <Button asChild size="sm">
-            <Link href={ROUTES.signUp}>Get started</Link>
-          </Button>
+          <MarketingAuthButtons />
         </div>
       </nav>
     </header>

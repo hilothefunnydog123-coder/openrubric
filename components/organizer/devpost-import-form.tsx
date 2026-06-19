@@ -31,7 +31,7 @@ function parseCsv(text: string): ImportRow[] {
 }
 
 export function DevpostImportForm() {
-  const [url, setUrl] = useState("bayareaaihacks.devpost.com");
+  const [url, setUrl] = useState("");
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [note, setNote] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -90,15 +90,21 @@ export function DevpostImportForm() {
 
   return (
     <div className="flex flex-col gap-3">
+      <p className="text-[12.5px] leading-[1.5] text-dim">
+        <strong className="font-semibold text-ink">Optional (add closer to the deadline).</strong> No
+        Devpost URL yet? Skip it — you can paste it here any time. Once it&apos;s set, OpenRubric keeps
+        pulling in new submissions automatically.
+      </p>
       <div className="flex items-center gap-3 rounded-[11px] border border-accent bg-accent-soft px-4 py-3.5">
         <span className="font-mono text-[11px] text-accent">01</span>
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          className="flex-1 border-none bg-transparent text-sm outline-none"
+          placeholder="yourhackathon.devpost.com"
+          className="flex-1 border-none bg-transparent text-sm outline-none placeholder:text-faint"
           aria-label="Devpost hackathon URL"
         />
-        <Button size="sm" onClick={importDevpost} disabled={importing}>
+        <Button size="sm" onClick={importDevpost} disabled={importing || !url.trim()}>
           {importing ? "Importing…" : "Import"}
         </Button>
       </div>

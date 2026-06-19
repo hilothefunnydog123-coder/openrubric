@@ -1,4 +1,5 @@
 import "server-only";
+import path from "node:path";
 import nodemailer, { type Transporter } from "nodemailer";
 import { SITE } from "@/lib/constants";
 
@@ -18,6 +19,27 @@ import { SITE } from "@/lib/constants";
  */
 
 const FROM_NAME = SITE.name;
+
+// The logo mark, embedded as an inline (CID) attachment so it renders in every email
+// client without depending on a public URL (localhost wouldn't reach the recipient).
+const LOGO_CID = "openrubric-logo";
+const logoAttachment = {
+  filename: "openrubric.png",
+  path: path.join(process.cwd(), "public", "openrubric-logo-256.png"),
+  cid: LOGO_CID,
+};
+
+/** Brand header: the logo mark to the left of the OpenRubric wordmark. */
+function brandHeader(): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+    <td style="padding-right:10px;vertical-align:middle;">
+      <img src="cid:${LOGO_CID}" width="28" height="28" alt="${FROM_NAME}" style="display:block;border-radius:7px;" />
+    </td>
+    <td style="vertical-align:middle;">
+      <span style="font-size:18px;font-weight:600;letter-spacing:-0.01em;color:#0a0b0d;">${FROM_NAME}</span>
+    </td>
+  </tr></table>`;
+}
 
 export function isMailerConfigured(): boolean {
   return Boolean(
@@ -70,6 +92,7 @@ export async function sendVerificationEmail(to: string, link: string): Promise<S
       subject: `Verify your email · ${FROM_NAME}`,
       text: `Welcome to ${FROM_NAME}!\n\nConfirm your email by opening this link (valid for 30 minutes):\n${link}\n\nIf you didn't create an account, you can ignore this message.`,
       html: verificationEmailHtml(link),
+      attachments: [logoAttachment],
     });
     return { sent: true, demo: false, messageId: info.messageId };
   } catch (err) {
@@ -81,7 +104,6 @@ export async function sendVerificationCodeEmail(
   to: string,
   code: string,
   continueLink?: string,
-  location?: string,
 ): Promise<SendResult> {
   const transport = getTransport();
   if (!transport) return { sent: false, demo: true };
@@ -90,11 +112,12 @@ export async function sendVerificationCodeEmail(
     const info = await transport.sendMail({
       from: fromAddress(),
       to,
-      subject: `${code} is your ${FROM_NAME} verification code`,
+      subject: `${code} is your ${FROM_NAME} Verification Code`,
       text: `Your ${FROM_NAME} verification code is ${code}.\n\nEnter it to confirm your email (it expires in 10 minutes)${
         continueLink ? `, or just open this link to continue:\n${continueLink}` : "."
-      }\n\n${location ? `This code was requested from ${location}. ` : ""}If you didn't request this, you can ignore this message.`,
-      html: verificationCodeEmailHtml(code, continueLink, location),
+      }\n\nIf you didn't request this, you can ignore this message.`,
+      html: verificationCodeEmailHtml(code, continueLink),
+      attachments: [logoAttachment],
     });
     return { sent: true, demo: false, messageId: info.messageId };
   } catch (err) {
@@ -118,6 +141,7 @@ export async function sendJudgeInviteEmail(
       subject: `You're invited to judge ${event} on ${FROM_NAME}`,
       text: `${inviter}invited you to judge ${event} on ${FROM_NAME}.\n\nAccept and create your judge account with this email:\n${opts.acceptLink}\n`,
       html: judgeInviteEmailHtml(opts.acceptLink, event, opts.inviterName),
+      attachments: [logoAttachment],
     });
     return { sent: true, demo: false, messageId: info.messageId };
   } catch (err) {
@@ -128,10 +152,10 @@ export async function sendJudgeInviteEmail(
 function judgeInviteEmailHtml(acceptLink: string, event: string, inviter?: string): string {
   return `<!doctype html>
 <html lang="en">
-  <body style="margin:0;background:#0a0b0d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
+  <body style="margin:0;background:#f4f1ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;">
       <tr><td style="padding:0 0 28px;">
-        <span style="font-size:18px;font-weight:600;letter-spacing:-0.01em;color:#f3f1ec;">${FROM_NAME}</span>
+        ${brandHeader()}
       </td></tr>
       <tr><td style="background:#17181b;border:1px solid #27292e;border-radius:18px;padding:36px 32px;">
         <h1 style="margin:0 0 10px;font-size:22px;line-height:1.25;color:#f3f1ec;font-weight:600;letter-spacing:-0.02em;">You're invited to judge</h1>
@@ -141,9 +165,6 @@ function judgeInviteEmailHtml(acceptLink: string, event: string, inviter?: strin
         <a href="${acceptLink}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-size:15px;font-weight:600;padding:13px 30px;border-radius:10px;">
           Accept &amp; sign up &rarr;
         </a>
-        <p style="margin:18px 0 0;font-size:12px;line-height:1.6;color:#6a6a6a;word-break:break-all;">
-          Or paste this link: <span style="color:#7a8aa8;">${acceptLink}</span>
-        </p>
       </td></tr>
       <tr><td style="padding:22px 4px 0;font-size:12px;line-height:1.5;color:#5a5a5a;">
         Didn't expect this? You can ignore it — no account is created until you sign up.
@@ -165,7 +186,7 @@ export async function verifyTransport(): Promise<{ ok: boolean; demo: boolean; e
   }
 }
 
-function verificationCodeEmailHtml(code: string, continueLink?: string, location?: string): string {
+function verificationCodeEmailHtml(code: string, continueLink?: string): string {
   const cells = code
     .split("")
     .map(
@@ -179,18 +200,15 @@ function verificationCodeEmailHtml(code: string, continueLink?: string, location
         <a href="${continueLink}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:13px 30px;border-radius:10px;">
           Continue &rarr;
         </a>
-        <p style="margin:12px 0 0;font-size:12px;line-height:1.5;color:#6a6a6a;">
-          Opens OpenRubric in your browser and verifies you automatically — no typing needed.
-        </p>
       </td></tr>`
     : "";
 
   return `<!doctype html>
 <html lang="en">
-  <body style="margin:0;background:#0a0b0d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
+  <body style="margin:0;background:#f4f1ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;">
       <tr><td style="padding:0 0 28px;">
-        <span style="font-size:18px;font-weight:600;letter-spacing:-0.01em;color:#f3f1ec;">${FROM_NAME}</span>
+        ${brandHeader()}
       </td></tr>
       <tr><td style="background:#17181b;border:1px solid #27292e;border-radius:18px;padding:36px 32px;">
         <h1 style="margin:0 0 10px;font-size:22px;line-height:1.25;color:#f3f1ec;font-weight:600;letter-spacing:-0.02em;">Verify your email</h1>
@@ -198,11 +216,10 @@ function verificationCodeEmailHtml(code: string, continueLink?: string, location
           Enter this 6-digit code to confirm your email. It expires in 10 minutes.
         </p>
         <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 6px;"><tr>${cells}</tr></table>
-        <p style="margin:0;text-align:center;font-size:12px;color:#6a6a6a;">Tap and hold a digit to copy the code.</p>
         ${continueBlock}
       </td></tr>
       <tr><td style="padding:22px 4px 0;font-size:12px;line-height:1.5;color:#5a5a5a;">
-        ${location ? `This code was requested from <span style="color:#8a8a8a;">${location}</span>.<br/>` : ""}Didn't request this? You can safely ignore this email — no account will be verified.
+        Didn't request this? You can safely ignore this email — no account will be verified.
       </td></tr>
     </table>
   </body>
@@ -212,10 +229,10 @@ function verificationCodeEmailHtml(code: string, continueLink?: string, location
 function verificationEmailHtml(link: string): string {
   return `<!doctype html>
 <html lang="en">
-  <body style="margin:0;background:#0d0e10;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
+  <body style="margin:0;background:#f4f1ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;">
       <tr><td style="padding:0 0 28px;">
-        <span style="font-size:18px;font-weight:600;letter-spacing:-0.01em;color:#f3f1ec;">${FROM_NAME}</span>
+        ${brandHeader()}
       </td></tr>
       <tr><td style="background:#17181b;border:1px solid #27292e;border-radius:18px;padding:36px 32px;">
         <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;color:#f3f1ec;font-weight:600;letter-spacing:-0.02em;">Confirm your email</h1>

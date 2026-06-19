@@ -22,9 +22,13 @@ function Metric({ label, value, danger }: { label: string; value: string; danger
 export function OrganizerDashboard({
   projects,
   hackathonId,
+  devpostUrl = null,
+  judgeCount = 0,
 }: {
   projects: ProjectView[];
   hackathonId: string | null;
+  devpostUrl?: string | null;
+  judgeCount?: number;
 }) {
   const reviewCases: ReviewCase[] = [];
 
@@ -59,7 +63,7 @@ export function OrganizerDashboard({
         {/* metrics */}
         <div className="mb-[22px] grid grid-cols-1 overflow-hidden rounded-[14px] border border-line bg-surface sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Submissions" value={String(projects.length)} />
-          <Metric label="Judges active" value="3" />
+          <Metric label="Judges active" value={String(judgeCount)} />
           <Metric label="Scores completed" value={`${doneSlots} / ${totalSlots}`} />
           <Metric label="Needs review" value={String(needsReview)} danger />
         </div>
@@ -78,7 +82,7 @@ export function OrganizerDashboard({
         {/* table + rail */}
         <div className="grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[1.65fr_1fr]">
           <div className="flex flex-col gap-[22px]">
-            {hackathonId && <LiveImport hackathonId={hackathonId} />}
+            {hackathonId && <LiveImport hackathonId={hackathonId} devpostUrl={devpostUrl} />}
             {projects.length === 0 ? (
               <div className="rounded-[14px] border border-dashed border-line bg-surface px-5 py-10 text-center">
                 <div className="text-[15px] font-semibold">No projects yet</div>

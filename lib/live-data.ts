@@ -71,6 +71,7 @@ function mapScan(submissionId: string, row: any): GithubScan {
     flags_json: row.flags_json ?? [],
     review_priority: row.review_priority ?? "clean",
     summary: row.summary ?? "",
+    languages_json: Array.isArray(row.languages_json) ? row.languages_json : [],
     created_at: row.created_at ?? new Date(0).toISOString(),
   };
 }
@@ -81,10 +82,10 @@ function mapAi(submissionId: string, description: string, row: any): AiSummary {
     id: row.id,
     submission_id: submissionId,
     summary: row.summary ?? "",
-    what: row.summary ?? "",
-    who: "",
-    how: "",
-    tech: [],
+    what: row.what ?? row.summary ?? "",
+    who: row.who ?? "",
+    how: row.how ?? "",
+    tech: Array.isArray(row.tech_json) ? row.tech_json : [],
     strengths_json: row.strengths_json ?? [],
     weaknesses_json: row.weaknesses_json ?? [],
     suggested_questions_json: row.suggested_questions_json ?? SUGGESTED_QUESTIONS,
@@ -115,6 +116,7 @@ function mapProject(row: any): ProjectView {
     status: row.status ?? "imported",
     created_at: row.created_at,
     track: row.track?.name ?? "General",
+    screenshots: Array.isArray(row.screenshots_json) ? row.screenshots_json : [],
     participants: (row.participants ?? []).map((p: any) => ({
       id: p.id,
       submission_id: row.id,
@@ -166,6 +168,48 @@ export async function getProjectView(id: string): Promise<ProjectView | null> {
   const { data, error } = await sb.from("submissions").select(PROJECT_SELECT).eq("id", id).maybeSingle();
   if (error || !data) return null;
   return mapProject(data);
+}
+
+export interface InvitationView {
+  token: string;
+  email: string;
+  status: string;
+  hackathon_id: string | null;
+  hackathon_name: string;
+  inviter_name: string | null;
+}
+
+/** Look up a judge invitation by token, with the hackathon + inviter names. */
+export async function getInvitationByToken(token: string): Promise<InvitationView | null> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("invitations")
+    .select("token, email, status, hackathon_id, hackathon:hackathons(name), inviter:profiles(full_name)")
+    .eq("token", token)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as any;
+  return {
+    token: row.token,
+    email: row.email,
+    status: row.status,
+    hackathon_id: row.hackathon_id,
+    hackathon_name: row.hackathon?.name ?? "the hackathon",
+    inviter_name: row.inviter?.full_name ?? null,
+  };
+}
+
+/** Number of judges actually on a hackathon (distinct judge assignments). */
+export async function countHackathonJudges(hackathonId: string): Promise<number> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb) return 0;
+  const { data } = await sb
+    .from("judge_assignments")
+    .select("judge_id")
+    .eq("hackathon_id", hackathonId);
+  if (!data) return 0;
+  return new Set(data.map((r: any) => r.judge_id)).size;
 }
 
 /** The hackathon a submission belongs to (used to load its live rubric). */

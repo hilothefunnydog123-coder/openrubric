@@ -30,6 +30,7 @@ export interface DevpostProject {
   devpost_url: string;
   built_with: string[];
   members: { name: string; username: string; profile_url: string }[];
+  screenshots: string[];
 }
 
 /** Normalize a hackathon URL or bare subdomain into a base origin. */
@@ -59,14 +60,24 @@ async function getHtml(url: string, signal?: AbortSignal): Promise<string> {
   return res.text();
 }
 
-function parseGalleryPage(html: string, base: string): { name: string; url: string }[] {
+/** Real Devpost project image (screenshot) vs. avatars / static logos / placeholders. */
+const REAL_SHOT = /software_photos|software_thumbnail_photos|d112y698adiu2z/i;
+function isRealShot(src: string): boolean {
+  return (
+    /^https?:\/\//i.test(src) &&
+    REAL_SHOT.test(src) &&
+    !/avatar|gravatar|placeholder|googleusercontent/i.test(src)
+  );
+}
+
+function parseGalleryPage(html: string, base: string): { name: string; url: string; image: string | null }[] {
   const $ = cheerio.load(html);
   // SELECTORS — gallery tile links (primary → fallbacks).
   let tiles = $("a.link-to-software");
   if (tiles.length === 0) tiles = $(".gallery-item a[href*='/software/']");
   if (tiles.length === 0) tiles = $("a[href*='/software/']");
 
-  const out: { name: string; url: string }[] = [];
+  const out: { name: string; url: string; image: string | null }[] = [];
   const seen = new Set<string>();
   tiles.each((_, el) => {
     const href = $(el).attr("href") || "";
@@ -81,7 +92,55 @@ function parseGalleryPage(html: string, base: string): { name: string; url: stri
       $(el).attr("aria-label")?.trim() ||
       url.replace(/\/$/, "").split("/").pop() ||
       "Untitled";
-    out.push({ name, url });
+    // The tile thumbnail IS the project's primary screenshot (server-rendered here,
+    // unlike the detail-page gallery which Devpost lazy-loads).
+    const img = $(el).find("img").first();
+    const raw = (img.attr("src") || img.attr("data-src") || "").trim();
+    out.push({ name, url, image: isRealShot(raw) ? raw : null });
+  });
+  return out;
+}
+
+/** Largest URL out of a srcset string ("a.jpg 1x, b.jpg 2x" / "a 320w, b 1024w"). */
+function largestFromSrcset(srcset: string): string {
+  const parts = srcset
+    .split(",")
+    .map((s) => s.trim().split(/\s+/))
+    .filter((p) => p[0]);
+  return parts.length ? parts[parts.length - 1][0] : "";
+}
+
+/** Upgrade Devpost CDN thumbnails to the full-size image when the pattern is known. */
+function fullSize(url: string): string {
+  return url
+    .replace(/software_thumbnail_photos/g, "software_photos")
+    .replace(/\/(thumbnail|small|medium)\.(png|jpe?g|gif|webp)(\?|$)/i, "/large.$2$3");
+}
+
+/**
+ * Detail-page screenshot extraction. Only accepts real Devpost project images (the
+ * software_photos CDN) — never avatars/logos. Note Devpost lazy-loads the detail
+ * gallery, so this often finds nothing; the gallery TILE image is the reliable source.
+ */
+function extractScreenshots($: cheerio.CheerioAPI): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const consider = (raw?: string) => {
+    const src = fullSize((raw || "").trim());
+    if (!isRealShot(src) || seen.has(src) || out.length >= 8) return;
+    seen.add(src);
+    out.push(src);
+  };
+  $("img").each((_, el) => {
+    const $el = $(el);
+    const srcset = $el.attr("srcset") || $el.attr("data-srcset");
+    consider(
+      $el.attr("data-src") ||
+        $el.attr("data-lazy") ||
+        $el.attr("data-original") ||
+        (srcset ? largestFromSrcset(srcset) : "") ||
+        $el.attr("src"),
+    );
   });
   return out;
 }
@@ -137,6 +196,8 @@ function parseProject(html: string, url: string): DevpostProject {
     if (t) built_with.push(t);
   });
 
+  const screenshots = extractScreenshots($);
+
   return {
     project_name,
     team_name: members.map((m) => m.name).join(", "),
@@ -146,6 +207,7 @@ function parseProject(html: string, url: string): DevpostProject {
     devpost_url: url,
     built_with,
     members,
+    screenshots,
   };
 }
 
@@ -174,6 +236,74 @@ export interface ScrapeResult {
 }
 
 /**
+ * Images-only Apify enrichment (opt-in via APIFY_TOKEN). The free built-in scrape does
+ * ALL the data + a first pass at screenshots; this fills ONLY the gaps — projects that
+ * came back with zero images (lazy galleries / a blocked fetch). It batches every gap
+ * into a SINGLE actor run (not one per page), so cost stays low.
+ *
+ * Uses apify/cheerio-scraper (HTTP-only, the cheapest official scraper). Devpost serves
+ * its gallery images in static HTML, so no headless browser is needed. The run fetches
+ * through Apify's RESIDENTIAL proxy to bypass Devpost's datacenter-IP block.
+ *
+ *   APIFY_TOKEN = your Apify API token  (https://console.apify.com/account/integrations)
+ *   APIFY_ACTOR = actor id, default "apify~cheerio-scraper"
+ *                 (one-time approval: console → the actor → Approve permissions)
+ */
+async function enrichScreenshotsViaApify(projects: DevpostProject[], base: string): Promise<void> {
+  const token = process.env.APIFY_TOKEN;
+  if (!token) return;
+  const targets = projects.filter((p) => p.screenshots.length === 0 && p.devpost_url);
+  if (targets.length === 0) return; // tiles already covered everything → no spend
+
+  const actor = process.env.APIFY_ACTOR || "apify~cheerio-scraper";
+  const endpoint = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`;
+  // Re-crawl the gallery (through Apify's residential proxy) and read each tile's
+  // thumbnail — the project's primary screenshot, reliably in static HTML. Recovers
+  // shots when the direct crawl was partially blocked. One cheap HTTP run, no browser.
+  const pages = Math.min(5, Math.ceil(targets.length / 40) + 1);
+  const startUrls = Array.from({ length: pages }, (_, i) => ({ url: `${base}/project-gallery?page=${i + 1}` }));
+  const pageFunction = `async function pageFunction(context){const {$}=context;const rows=[];$('a.link-to-software').each(function(){const a=$(this);const href=(a.attr('href')||'').split('?')[0];const img=a.find('img').attr('src')||a.find('img').attr('data-src')||'';rows.push({href,img});});return {rows};}`;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 50_000);
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        startUrls,
+        pageFunction,
+        proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"] },
+        maxRequestsPerCrawl: pages + 1,
+        maxConcurrency: 3,
+        maxRequestRetries: 4, // residential IPs occasionally return an empty page
+      }),
+    });
+    if (!res.ok) return;
+    const items = (await res.json().catch(() => null)) as Array<{ rows?: { href: string; img: string }[] }> | null;
+    if (!Array.isArray(items)) return;
+
+    const norm = (u: string) => u.replace(/\/$/, "");
+    const byUrl = new Map<string, string>();
+    for (const it of items) {
+      for (const r of it.rows ?? []) {
+        if (r.href && isRealShot(r.img) && !byUrl.has(norm(r.href))) byUrl.set(norm(r.href), r.img);
+      }
+    }
+    for (const p of projects) {
+      if (p.screenshots.length > 0) continue;
+      const img = byUrl.get(norm(p.devpost_url));
+      if (img) p.screenshots = [fullSize(img)];
+    }
+  } catch {
+    /* Apify unavailable/timed out — keep whatever the built-in scrape found */
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Scrape a Devpost hackathon. Bounded for a single request: crawls up to `maxPages`
  * gallery pages and enriches up to `maxProjects` with per-project detail.
  */
@@ -188,7 +318,7 @@ export async function scrapeDevpost(
 
   try {
     // Stage 1 — gallery crawl
-    const tiles: { name: string; url: string }[] = [];
+    const tiles: { name: string; url: string; image: string | null }[] = [];
     const seen = new Set<string>();
     for (let page = 1; page <= maxPages; page++) {
       const html = await getHtml(`${base}/project-gallery?page=${page}`, ctrl.signal);
@@ -210,10 +340,21 @@ export async function scrapeDevpost(
       const html = await getHtml(t.url, ctrl.signal);
       const p = parseProject(html, t.url);
       if (!p.project_name || p.project_name === "Untitled") p.project_name = t.name;
+      // The gallery tile thumbnail is the project's primary screenshot (reliably in
+      // static HTML). Lead with it, then add any detail-page images we managed to find.
+      const merged: string[] = [];
+      if (t.image) merged.push(fullSize(t.image));
+      for (const s of p.screenshots) if (!merged.includes(s)) merged.push(s);
+      p.screenshots = merged.slice(0, 8);
       return p;
     });
 
     const projects = detailed.filter((p): p is DevpostProject => p !== null);
+
+    // Fill any remaining screenshot gaps via one cheap Apify gallery re-crawl
+    // (no-op without a token, or when the tiles already covered everything).
+    await enrichScreenshotsViaApify(projects, base);
+
     return { base, projects, truncated };
   } finally {
     clearTimeout(timer);

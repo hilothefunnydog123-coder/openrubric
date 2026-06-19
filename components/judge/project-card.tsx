@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
-import { TimelineBadge } from "@/components/ui/badge";
 import type { ProjectView, SubmissionStatus } from "@/lib/types";
 
 const STATUS_DOT: Record<SubmissionStatus, string> = {
@@ -37,7 +36,6 @@ export function ProjectCard({
     <div className="flex flex-col rounded-[14px] border border-line bg-surface p-[18px] transition-all duration-150 hover:-translate-y-0.5 hover:border-ink">
       <div className="mb-1 flex items-start justify-between gap-2.5">
         <div className="text-[17px] font-semibold tracking-[-0.01em]">{project.project_name}</div>
-        <TimelineBadge priority={project.scan.review_priority} />
       </div>
       <div className="mb-4 font-mono text-[11.5px] text-dim">
         {project.team_name} · {project.track}

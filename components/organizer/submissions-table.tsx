@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { StatusBadge, TimelineBadge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/badge";
 import { ROUTES } from "@/lib/constants";
 import { isBlockedByReview } from "@/lib/scoring";
 import type { ProjectView, ReviewCase, SubmissionStatus } from "@/lib/types";
 
-const COLS = "grid-cols-[1.6fr_1fr_0.7fr_0.6fr_1fr_0.9fr_1fr]";
+const COLS = "grid-cols-[1.8fr_1fr_0.7fr_0.6fr_0.9fr_1fr]";
 
 function aggregateStatus(p: ProjectView): SubmissionStatus {
   if (p.judgesDone >= p.judgesTotal) return "finalized";
@@ -38,7 +38,6 @@ export function SubmissionsTable({
             <span>Track</span>
             <span>Judges</span>
             <span>Avg</span>
-            <span>Timeline</span>
             <span>Review</span>
             <span>Status</span>
           </div>
@@ -59,9 +58,6 @@ export function SubmissionsTable({
                   {p.judgesDone} / {p.judgesTotal}
                 </span>
                 <span className="font-mono text-[13px] font-semibold">{p.othersAvg}</span>
-                <span className="justify-self-start">
-                  <TimelineBadge priority={p.scan.review_priority} />
-                </span>
                 <span className={`font-mono text-[11px] ${review.className}`}>{review.label}</span>
                 <span className="justify-self-start">
                   <StatusBadge status={aggregateStatus(p)} />

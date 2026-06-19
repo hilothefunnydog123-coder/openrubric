@@ -45,6 +45,7 @@ export async function POST(req: Request) {
         description: p.description,
         members: p.members,
         built_with: p.built_with,
+        screenshots: p.screenshots,
       })),
       note: truncated
         ? "Imported public Devpost metadata (first 80 projects — re-run to page further)."

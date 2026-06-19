@@ -4,7 +4,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { ROUTES } from "@/lib/constants";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { ROUTES, PENDING_SIGNUP_KEY } from "@/lib/constants";
+
+interface PendingSignup {
+  email: string;
+  fullName: string;
+  role: "organizer" | "judge" | "participant";
+  password: string;
+  invite: string | null;
+}
+
+/** Every verified path lands on the same get-started screen (invited judges keep their welcome). */
+function destinationFor(invite: string | null): string {
+  return invite ? `${ROUTES.getStarted}?invite=${encodeURIComponent(invite)}` : ROUTES.getStarted;
+}
 
 type Status = "verifying" | "success" | "error" | "expired";
 
@@ -13,16 +27,72 @@ const MIN_VERIFY_MS = 1300; // let the animation breathe even if the API is inst
 export function VerifyExperience({ token }: { token?: string }) {
   const [status, setStatus] = useState<Status>("verifying");
   const [email, setEmail] = useState<string | null>(null);
+  const [dest, setDest] = useState<string>(ROUTES.getStarted);
   const reduce = useReducedMotion();
   const ran = useRef(false);
   const router = useRouter();
 
-  // On success, the magic link signs you straight into the workspace.
+  // On success, the magic link signs you straight into your dashboard.
   useEffect(() => {
     if (status !== "success") return;
-    const t = setTimeout(() => router.push(ROUTES.getStarted), 1500);
+    const t = setTimeout(() => router.push(dest), 1500);
     return () => clearTimeout(t);
-  }, [status, router]);
+  }, [status, dest, router]);
+
+  // Reads the pending signup stashed by the form, creates + signs in the verified
+  // user, and returns where to send them. No pending signup → just to get-started.
+  async function completeDeferredSignup(linkToken: string, verifiedEmail: string | null): Promise<string> {
+    let pending: PendingSignup | null = null;
+    try {
+      const raw = window.localStorage.getItem(PENDING_SIGNUP_KEY);
+      if (raw) pending = JSON.parse(raw) as PendingSignup;
+    } catch {
+      /* ignore */
+    }
+    if (!pending?.email || !pending.password) return ROUTES.getStarted;
+    if (verifiedEmail && pending.email.toLowerCase() !== verifiedEmail.toLowerCase()) {
+      return ROUTES.getStarted;
+    }
+
+    try {
+      const reg = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkToken,
+          email: pending.email,
+          password: pending.password,
+          fullName: pending.fullName,
+          role: pending.role,
+        }),
+      });
+      const regData = await reg.json().catch(() => ({}));
+      if (!reg.ok || !regData.ok) return ROUTES.getStarted;
+
+      const supabase = getSupabaseBrowserClient();
+      if (supabase) {
+        await supabase.auth
+          .signInWithPassword({ email: pending.email, password: pending.password })
+          .catch(() => {});
+      }
+      if (pending.invite) {
+        await fetch("/api/judges/accept", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: pending.invite, email: pending.email }),
+        }).catch(() => {});
+      }
+      return destinationFor(pending.invite);
+    } catch {
+      return ROUTES.getStarted;
+    } finally {
+      try {
+        window.localStorage.removeItem(PENDING_SIGNUP_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
 
   useEffect(() => {
     if (ran.current) return;
@@ -36,6 +106,7 @@ export function VerifyExperience({ token }: { token?: string }) {
     (async () => {
       let next: Status = "error";
       let mail: string | null = null;
+      let destination: string = ROUTES.getStarted;
       try {
         const res = await fetch("/api/auth/verify", {
           method: "POST",
@@ -46,6 +117,9 @@ export function VerifyExperience({ token }: { token?: string }) {
         if (res.ok && data.ok) {
           next = "success";
           mail = data.email ?? null;
+          // Finish the deferred signup if this browser holds the pending details:
+          // create the (now-verified) account, sign in, and head to the dashboard.
+          destination = await completeDeferredSignup(token!, data.email ?? null);
         } else {
           next = data.reason === "expired" ? "expired" : "error";
         }
@@ -55,6 +129,7 @@ export function VerifyExperience({ token }: { token?: string }) {
       const wait = Math.max(0, MIN_VERIFY_MS - (Date.now() - started));
       setTimeout(() => {
         setEmail(mail);
+        setDest(destination);
         setStatus(next);
       }, wait);
     })();
@@ -94,7 +169,7 @@ export function VerifyExperience({ token }: { token?: string }) {
                   className="mt-7"
                 >
                   <Link
-                    href={ROUTES.getStarted}
+                    href={dest}
                     className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[14px] font-semibold text-black transition-transform hover:scale-[1.03] active:scale-95"
                   >
                     Continue
