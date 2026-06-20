@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
   // One-click "Continue" magic link — opens /verify, which plays the verification
   // animation, completes the (deferred) signup, and routes to the dashboard.
-  const base = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+  const base = (process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin).replace(/\/+$/, "");
   const continueLink = `${base}/verify?token=${encodeURIComponent(createVerificationToken(email))}`;
 
   if (!isMailerConfigured()) {

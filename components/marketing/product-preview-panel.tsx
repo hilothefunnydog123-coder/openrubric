@@ -237,10 +237,10 @@ export function ProductPreviewPanel() {
             type="button"
             onClick={() => windowState !== "open" && setWindowState("open")}
             className="flex flex-1 cursor-default justify-center"
-            aria-label={windowState !== "open" ? "Reopen preview" : "openrubric.org"}
+            aria-label={windowState !== "open" ? "Reopen preview" : "openrubric.vercel.app"}
           >
             <div className="rounded-md border border-[#1A1A1A] bg-[#080808] px-4 py-[5px] font-mono text-[12px] text-[#6B6B6B]">
-              openrubric.org
+              openrubric.vercel.app
             </div>
           </button>
         </div>

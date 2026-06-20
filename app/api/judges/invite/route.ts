@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     hackathonName = hk?.name || undefined;
   }
 
-  const base = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+  const base = (process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin).replace(/\/+$/, "");
   const acceptLink = `${base}/sign-up?invite=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
   if (!isMailerConfigured()) {

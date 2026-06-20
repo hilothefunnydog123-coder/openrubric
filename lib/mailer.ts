@@ -75,7 +75,7 @@ function getTransport(): Transporter | null {
 }
 
 function fromAddress(): string {
-  const addr = process.env.GMAIL_USER || process.env.SMTP_USER || "no-reply@openrubric.org";
+  const addr = process.env.GMAIL_USER || process.env.SMTP_USER || "openrubric@gmail.com";
   return `"${FROM_NAME}" <${addr}>`;
 }
 
