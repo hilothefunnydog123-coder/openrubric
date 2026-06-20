@@ -26,7 +26,10 @@ const mono = Geist_Mono({
   display: "swap",
 });
 
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+const APP_URL = (
+  process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.NODE_ENV === "production" ? "https://openrubric.vercel.app" : "http://localhost:3000")
+).replace(/\/+$/, "");
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
