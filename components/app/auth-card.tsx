@@ -16,6 +16,7 @@ import { OtpInput } from "@/components/ui/otp-input";
 import { GoogleIcon } from "@/components/ui/google-icon";
 import { GithubIcon } from "@/components/ui/github-icon";
 import { GmailIcon } from "@/components/ui/gmail-icon";
+import { YahooIcon } from "@/components/ui/yahoo-icon";
 import { PASSWORD_RULES } from "@/lib/password";
 import { cn } from "@/lib/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
@@ -38,6 +39,34 @@ function friendlyAuthError(message: string): string {
   if (m.includes("email"))
     return "That email address looks invalid. Double-check it and try again.";
   return message || "Something went wrong. Please try again.";
+}
+
+/**
+ * The "open your inbox" shortcut, matched to the email's provider. Only providers we
+ * can deep-link to get a button; anything else (custom domains, Outlook, etc.) returns
+ * null so we don't show a misleading "Go to Gmail" link.
+ */
+function webmailFor(email: string | null) {
+  const domain = (email ?? "").split("@")[1]?.toLowerCase() ?? "";
+  if (!domain) return null;
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    return {
+      name: "Gmail",
+      href: `https://mail.google.com/mail/u/0/#search/${encodeURIComponent("OpenRubric verification code")}`,
+      Icon: GmailIcon,
+      iconClass: "h-[18px] w-[18px]",
+    };
+  }
+  if (domain === "yahoo.com" || domain === "ymail.com" || domain === "rocketmail.com" || domain.startsWith("yahoo.")) {
+    return {
+      name: "Yahoo Mail",
+      href: "https://mail.yahoo.com/",
+      Icon: YahooIcon,
+      // The accent purple the user specified: rgba(177,151,252,1).
+      iconClass: "h-[18px] w-[18px] text-[#B197FC]",
+    };
+  }
+  return null;
 }
 
 export function AuthCard({
@@ -400,17 +429,22 @@ export function AuthCard({
                     </div>
                   )}
 
-                  <a
-                    href={`https://mail.google.com/mail/u/0/#search/${encodeURIComponent(
-                      "OpenRubric verification code",
-                    )}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface px-4 py-3 text-[14px] font-medium text-ink shadow-sm transition-colors hover:border-ink"
-                  >
-                    <GmailIcon className="h-[18px] w-[18px]" />
-                    Go to Gmail &amp; find the code
-                  </a>
+                  {(() => {
+                    const webmail = webmailFor(sentTo);
+                    if (!webmail) return null;
+                    const { Icon } = webmail;
+                    return (
+                      <a
+                        href={webmail.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface px-4 py-3 text-[14px] font-medium text-ink shadow-sm transition-colors hover:border-ink"
+                      >
+                        <Icon className={webmail.iconClass} />
+                        Go to {webmail.name} &amp; find the code
+                      </a>
+                    );
+                  })()}
 
                   <p className="mb-4 mt-2.5 text-[11.5px] text-faint">
                     Don&apos;t see it? Check your spam or promotions folder.
