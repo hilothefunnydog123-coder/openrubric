@@ -126,16 +126,21 @@ function TimezoneSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-control w-full items-center justify-between gap-2 rounded-control border border-line bg-surface px-3.5 text-left text-[14px] text-ink outline-none transition-colors hover:border-faint focus:border-accent"
+        className={cn(
+          "flex h-[52px] w-full items-center justify-between gap-2 rounded-[13px] border bg-surface px-4 text-left text-[15px] text-ink shadow-sm outline-none transition-all",
+          open ? "border-accent ring-2 ring-accent/15" : "border-line hover:border-faint focus:border-accent",
+        )}
       >
-        <span className={current ? "" : "text-faint"}>{current?.label ?? "Select a timezone"}</span>
+        <span className={current ? "font-medium" : "text-faint"}>
+          {current?.label ?? "Select a timezone"}
+        </span>
         <ChevronDown
-          className={cn("h-4 w-4 flex-shrink-0 text-faint transition-transform", open && "rotate-180")}
+          className={cn("h-[18px] w-[18px] flex-shrink-0 text-faint transition-transform", open && "rotate-180")}
           strokeWidth={2.25}
         />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-[11px] border border-line bg-surface p-1.5 shadow-[0_10px_34px_rgba(20,18,14,0.14)]">
+        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 overflow-y-auto rounded-[13px] border border-line bg-surface p-2 shadow-[0_14px_40px_rgba(20,18,14,0.16)]">
           {options.map((o) => {
             const selected = o.value === value;
             return (
@@ -147,7 +152,7 @@ function TimezoneSelect({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-left text-[13.5px] transition-colors hover:bg-sunken",
+                  "flex w-full items-center gap-2.5 rounded-[9px] px-3 py-2.5 text-left text-[14px] transition-colors hover:bg-sunken",
                   selected ? "font-medium text-ink" : "text-dim",
                 )}
               >
