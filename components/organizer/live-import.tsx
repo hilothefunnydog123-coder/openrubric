@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/** How often we re-pull the Devpost gallery once a URL is saved. */
+/** How often we re-pull the Devpost gallery once a URL is saved (until the deadline). */
 const AUTO_IMPORT_MS = 2 * 60 * 1000;
 
 type Stage = "pending" | "importing" | "scanning" | "done" | "error";
@@ -20,49 +20,29 @@ const STAGE_LABEL: Record<Stage, string> = {
   error: "Skipped",
 };
 
-/** Minimal CSV parse (project_name,team_name,track,repo_url,devpost_url,live_url,description). */
-function parseCsv(text: string) {
-  const lines = text.trim().split(/\r?\n/).filter(Boolean);
-  if (!lines.length) return [];
-  const split = (l: string) =>
-    l.match(/("([^"]|"")*"|[^,]*)(,|$)/g)?.slice(0, -1).map((c) =>
-      c.replace(/,$/, "").replace(/^"|"$/g, "").replace(/""/g, '"').trim(),
-    ) ?? [];
-  const header = split(lines[0]).map((h) => h.toLowerCase());
-  const at = (cells: string[], k: string) => cells[header.indexOf(k)] ?? "";
-  return lines.slice(1).map((l) => {
-    const c = split(l);
-    return {
-      project_name: at(c, "project_name") || c[0] || "Untitled",
-      team_name: at(c, "team_name"),
-      track: at(c, "track"),
-      repo_url: at(c, "repo_url") || null,
-      devpost_url: at(c, "devpost_url") || null,
-      live_url: at(c, "live_url") || null,
-      description: at(c, "description"),
-    };
-  });
-}
-
 export function LiveImport({
   hackathonId,
   devpostUrl = null,
+  submissionDeadline = null,
 }: {
   hackathonId: string;
   devpostUrl?: string | null;
+  submissionDeadline?: string | null;
 }) {
   const router = useRouter();
   const [url, setUrl] = useState(devpostUrl ?? "");
   const [rows, setRows] = useState<Row[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const busyRef = useRef(false); // guards the auto-import interval against overlap
+
+  const deadlineMs = submissionDeadline ? new Date(submissionDeadline).getTime() : null;
+  const pastDeadline = deadlineMs != null && !Number.isNaN(deadlineMs) && Date.now() > deadlineMs;
 
   /** Persist projects, then scan+summarize each one sequentially so they stream in. */
   async function ingest(projects: Record<string, unknown>[], auto = false) {
     if (!projects.length) {
-      if (!auto) setNote("Nothing to import. Try a different source or add projects manually.");
+      if (!auto) setNote("Nothing to import — that gallery looks empty.");
       return;
     }
     setBusy(true);
@@ -125,7 +105,7 @@ export function LiveImport({
       setBusy(true);
       if (!auto) setNote("Scanning the Devpost gallery…");
       try {
-        // Persist the URL so it keeps auto-importing on future visits.
+        // Persist the URL so the server cron + future visits keep auto-importing.
         fetch(`/api/hackathons/${hackathonId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -141,14 +121,14 @@ export function LiveImport({
         if (!data.ok || !data.projects?.length) {
           setBusy(false);
           busyRef.current = false;
-          if (!auto) setNote(data.fallback || "Couldn't import from Devpost. Upload a CSV instead.");
+          if (!auto) setNote(data.fallback || "Couldn't reach that Devpost gallery. Contact us if you're not on Devpost.");
           return;
         }
         await ingest(data.projects, auto);
       } catch {
         setBusy(false);
         busyRef.current = false;
-        if (!auto) setNote("Couldn't reach Devpost. Upload a CSV instead.");
+        if (!auto) setNote("Couldn't reach Devpost. Contact us if your submissions live elsewhere.");
       }
     },
     // ingest is stable enough for our use; hackathonId is the only external dep.
@@ -156,21 +136,21 @@ export function LiveImport({
     [hackathonId],
   );
 
-  // Once a Devpost URL is saved, pull new submissions now and every couple of minutes.
+  // Once a Devpost URL is saved, pull new submissions now and every couple of minutes —
+  // but only while submissions are still open. After the deadline we stop (judging phase).
   useEffect(() => {
     if (!devpostUrl) return;
+    if (deadlineMs != null && Date.now() > deadlineMs) return;
     void importDevpost(devpostUrl, true);
-    const id = setInterval(() => void importDevpost(devpostUrl, true), AUTO_IMPORT_MS);
+    const id = setInterval(() => {
+      if (deadlineMs != null && Date.now() > deadlineMs) {
+        clearInterval(id);
+        return;
+      }
+      void importDevpost(devpostUrl, true);
+    }, AUTO_IMPORT_MS);
     return () => clearInterval(id);
-  }, [devpostUrl, importDevpost]);
-
-  function onCsv(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => ingest(parseCsv(String(reader.result)));
-    reader.readAsText(file);
-  }
+  }, [devpostUrl, deadlineMs, importDevpost]);
 
   const doneCount = rows.filter((r) => r.stage === "done").length;
 
@@ -194,20 +174,12 @@ export function LiveImport({
       </div>
 
       <p className="mt-2 text-[11.5px] leading-[1.5] text-faint">
-        {devpostUrl
-          ? "Auto-importing new submissions every couple of minutes."
-          : "Optional — add it whenever you have it. Once imported, new submissions keep flowing in automatically."}
+        {pastDeadline
+          ? "Submissions are closed — auto-sync is paused. You can still re-import manually."
+          : devpostUrl
+            ? "Auto-importing new submissions every couple of minutes until your deadline."
+            : "Optional — add it whenever you have it. Once imported, new submissions keep flowing in automatically until your deadline."}
       </p>
-
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        disabled={busy}
-        className="mt-3 w-full rounded-[11px] border border-dashed border-[#D6D1C6] px-4 py-2.5 text-left text-[13px] font-medium transition-colors hover:border-ink disabled:opacity-50"
-      >
-        …or upload a CSV
-      </button>
-      <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onCsv} className="hidden" />
 
       {rows.length > 0 && (
         <div className="mt-4 overflow-hidden rounded-[11px] border border-line">

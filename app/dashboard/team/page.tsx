@@ -2,20 +2,42 @@ import type { Metadata } from "next";
 import { SimpleHeader } from "@/components/app/simple-header";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
-import { prettyUrl } from "@/lib/utils";
-import { getProjectOr404 } from "@/lib/demo-data";
+import { getViewer } from "@/lib/auth";
+import { getProjectViewForEmail } from "@/lib/live-data";
 
 export const metadata: Metadata = { title: "My team" };
+export const dynamic = "force-dynamic";
 
-export default function TeamDashboardPage() {
-  // Demo: "your" team is Team Beacon / Lighthouse.
-  const project = getProjectOr404("lighthouse");
+export default async function TeamDashboardPage() {
+  const viewer = await getViewer();
+  const project = viewer ? await getProjectViewForEmail(viewer.email) : null;
+
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-canvas">
+        <SimpleHeader />
+        <div className="mx-auto w-full max-w-content px-8 pb-20 pt-10">
+          <Eyebrow className="mb-2">Participant</Eyebrow>
+          <h1 className="mb-4 text-[28px] font-semibold tracking-[-0.025em]">Your submission</h1>
+          <div className="rounded-[14px] border border-line bg-surface p-6">
+            <p className="max-w-[60ch] text-[14px] leading-[1.6] text-dim">
+              We couldn&apos;t find a submission linked to your account
+              {viewer?.email ? ` (${viewer.email})` : ""}. Once an organizer imports your project — or
+              you&apos;re listed as a participant with this email — your submission and judging status
+              will appear here.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const links = [
     { label: "Devpost", url: project.devpost_url },
     { label: "GitHub", url: project.repo_url },
     { label: "Live demo", url: project.live_url },
     { label: "Video", url: project.demo_video_url },
-  ];
+  ].filter((lk) => lk.url);
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -39,19 +61,21 @@ export default function TeamDashboardPage() {
             <p className="mb-6 max-w-[60ch] text-[14px] leading-[1.6] text-ink">
               {project.description}
             </p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              {links.map((lk) => (
-                <a
-                  key={lk.label}
-                  href={lk.url ? (lk.url.startsWith("http") ? lk.url : `https://${lk.url}`) : "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-[9px] border border-line bg-raised px-3 py-2.5 text-center text-[12.5px] font-medium transition-colors hover:border-ink"
-                >
-                  {lk.label} ↗
-                </a>
-              ))}
-            </div>
+            {links.length > 0 && (
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                {links.map((lk) => (
+                  <a
+                    key={lk.label}
+                    href={lk.url!.startsWith("http") ? lk.url! : `https://${lk.url}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-[9px] border border-line bg-raised px-3 py-2.5 text-center text-[12.5px] font-medium transition-colors hover:border-ink"
+                  >
+                    {lk.label} ↗
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* status rail */}

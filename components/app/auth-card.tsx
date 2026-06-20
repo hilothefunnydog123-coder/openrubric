@@ -76,12 +76,14 @@ export function AuthCard({
   }
 
   function openWorkspace() {
-    // Invited judges land on a tailored "you're a judge for X" welcome; everyone
-    // else gets the organizer start screen.
-    const dest = invite
-      ? `${ROUTES.getStarted}?invite=${encodeURIComponent(invite)}`
-      : ROUTES.getStarted;
-    window.open(dest, "_blank", "noopener,noreferrer");
+    // Invited judges already had their invite accepted during verification — send them
+    // straight to judging in the SAME tab (no second sign-up). Organizers open setup.
+    if (invite) {
+      router.push(ROUTES.judgeDashboard);
+      router.refresh();
+      return;
+    }
+    window.open(ROUTES.getStarted, "_blank", "noopener,noreferrer");
   }
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,9 +122,11 @@ export function AuthCard({
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
+        // Return to our callback route, which exchanges the code for a session, accepts
+        // the invite, and routes the judge straight to judging — never back to sign in.
         redirectTo:
           typeof window !== "undefined"
-            ? `${window.location.origin}${ROUTES.getStarted}${inviteQs}`
+            ? `${window.location.origin}${ROUTES.authCallback}${inviteQs}`
             : undefined,
       },
     });
@@ -438,7 +442,7 @@ export function AuthCard({
             {isSignUp
               ? invite
                 ? "Accept your judge invitation by creating an account with the invited email."
-                : "Create your account — you'll set up your role during onboarding."
+                : "Create your account, you'll set up your role during onboarding."
               : "Continue with your judging account to pick up where you left off."}
           </p>
 

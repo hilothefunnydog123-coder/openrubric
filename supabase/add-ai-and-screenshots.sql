@@ -18,3 +18,6 @@ alter table submissions add column if not exists built_with_json jsonb not null 
 
 -- GitHub language breakdown for the repo: [{ name, pct }].
 alter table github_scans add column if not exists languages_json jsonb not null default '[]';
+
+-- Organizer-uploaded hackathon logo (public storage URL).
+alter table hackathons add column if not exists logo_url text;

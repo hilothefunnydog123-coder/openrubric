@@ -5,6 +5,11 @@ export const SITE = {
   tagline: "Open judging infrastructure for fairer hackathons.",
   /** External GitHub repo — override with NEXT_PUBLIC_GITHUB_URL. */
   githubUrl: process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/openrubric/openrubric",
+  /**
+   * Where organizers reach the team when their platform isn't Devpost (or an import
+   * needs a hand). Override with NEXT_PUBLIC_SUPPORT_EMAIL.
+   */
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "openrubric@gmail.com",
 } as const;
 
 export const ROUTES = {
@@ -13,14 +18,21 @@ export const ROUTES = {
   signIn: "/sign-in",
   signUp: "/sign-up",
   verify: "/verify",
+  authCallback: "/auth/callback",
   getStarted: "/get-started",
   organize: "/organize",
   organizerImport: "/organizer/import",
   organizerDashboard: "/dashboard/organizer",
+  organizerTeam: "/dashboard/organizer/team",
   rankings: "/dashboard/organizer/rankings",
   judgeDashboard: "/dashboard/judge",
   teamDashboard: "/dashboard/team",
   submit: "/submit",
+  pricing: "/pricing",
+  contact: "/contact",
+  feedback: "/feedback",
+  terms: "/terms",
+  privacy: "/privacy",
   project: (id: string) => `/judge/project/${id}`,
 } as const;
 

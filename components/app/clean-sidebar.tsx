@@ -19,6 +19,7 @@ const ORG_NAV: NavItem[] = [
   { label: "Dashboard", href: ROUTES.organizerDashboard },
   { label: "Setup", href: ROUTES.organize },
   { label: "Import", href: ROUTES.organizerImport },
+  { label: "Team", href: ROUTES.organizerTeam },
   { label: "Rankings", href: ROUTES.rankings },
 ];
 
@@ -28,10 +29,12 @@ export function CleanSidebar({
   role,
   hasHackathon = false,
   hackathonName = null,
+  hackathonLogo = null,
 }: {
   role: Role;
   hasHackathon?: boolean;
   hackathonName?: string | null;
+  hackathonLogo?: string | null;
 }) {
   const pathname = usePathname();
   const nav = role === "organizer" ? ORG_NAV : JUDGE_NAV;
@@ -43,9 +46,18 @@ export function CleanSidebar({
           <Logo markClassName="h-[20px] w-[20px]" />
         </Link>
         <div className="mt-3.5 flex items-center gap-2 rounded-[9px] border border-line bg-surface p-2.5">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-ink text-canvas">
-            <LogoMark className="h-3.5 w-3.5" />
-          </span>
+          {hackathonLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={hackathonLogo}
+              alt={hackathonName ?? "Hackathon"}
+              className="h-6 w-6 flex-shrink-0 rounded-md object-cover"
+            />
+          ) : (
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-ink text-canvas">
+              <LogoMark className="h-3.5 w-3.5" />
+            </span>
+          )}
           <div className="min-w-0">
             <div className="truncate text-[12.5px] font-semibold">
               {hackathonName ?? "OpenRubric"}

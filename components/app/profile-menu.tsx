@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useImageDrop } from "@/components/ui/use-image-drop";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, LogOut, Settings, X } from "lucide-react";
 import { useSession } from "@/lib/session";
-import { initials } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 
 /** Round avatar — uploaded image, or initials on the user's color. */
@@ -59,8 +60,12 @@ export function ProfileMenu() {
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  // Demo mode / signed out: a simple sign-in affordance.
-  if (!loading && !user) {
+  // A present Supabase auth cookie ("sb-…") means the user IS signed in and the profile
+  // is just still resolving — show a neutral avatar placeholder, never a misleading
+  // "Sign in". The sign-in affordance only appears when there's genuinely no session.
+  const hasAuthCookie =
+    typeof document !== "undefined" && /(?:^|;\s*)sb-[^=]+-auth-token/.test(document.cookie);
+  if (!loading && !user && !hasAuthCookie) {
     return (
       <Link
         href={ROUTES.signIn}
@@ -158,6 +163,7 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const avatarDrop = useImageDrop((file) => void uploadAvatar(file));
 
   async function uploadAvatar(file: File) {
     setError(null);
@@ -245,11 +251,20 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="group relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full"
+            {...avatarDrop.dropProps}
+            className={cn(
+              "group relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full ring-2 ring-offset-2 transition-shadow",
+              avatarDrop.dragging ? "ring-accent" : "ring-transparent",
+            )}
             aria-label="Change profile picture"
           >
             <Avatar name={name || user?.name || ""} color={user?.color ?? "#2563EB"} url={preview} size={64} />
-            <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+            <span
+              className={cn(
+                "absolute inset-0 flex items-center justify-center bg-black/45 transition-opacity group-hover:opacity-100",
+                avatarDrop.dragging ? "opacity-100" : "opacity-0",
+              )}
+            >
               <Camera className="h-5 w-5 text-white" strokeWidth={1.8} />
             </span>
           </button>
@@ -261,7 +276,9 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
             >
               {uploading ? "Uploading…" : "Change picture"}
             </button>
-            <p className="mt-1.5 font-mono text-[10.5px] text-faint">PNG, JPG, WEBP · max 4 MB</p>
+            <p className="mt-1.5 font-mono text-[10.5px] text-faint">
+              Drag &amp; drop or click · PNG, JPG, WEBP · max 4 MB
+            </p>
           </div>
           <input
             ref={fileRef}

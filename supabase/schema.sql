@@ -6,8 +6,33 @@
 -- UNIQUE on judge_scores (submission_id, judge_id, criterion_id): each judge keeps
 -- an independent record and can never overwrite another judge. Organizers aggregate.
 --
--- RLS is enabled on every table; starter policies are included at the bottom.
--- Tighten them to your trust model before going to production.
+-- RLS is enabled on every table; policies are included at the bottom.
+--
+-- ── SECURITY MODEL (ALPHA) ──────────────────────────────────────────────────
+-- This schema is production-LEVEL but the platform is in ALPHA. The trust model
+-- below is deliberate; understand it before opening signups to the public:
+--
+--  * All privileged writes (imports, scoring autosave, aggregation, invitations,
+--    feedback, profile edits) run server-side with the SERVICE-ROLE key, which
+--    BYPASSES RLS. The browser only ever needs to: read its own profile, read its
+--    own invitations, and read shared judging context (see read_authenticated).
+--  * `anon` has NO policies anywhere → unauthenticated clients can read/write
+--    nothing directly. Good.
+--  * Several tables (judge_assignments, presentation_scores, judge_comments,
+--    review_cases, feedback) have RLS ON with NO policy on purpose: they are
+--    service-role-only. Deny-by-default is the safest posture and the app does
+--    not touch them from the browser.
+--  * judge_scores: a judge can read/write ONLY their own rows (own_scores_*).
+--  * profiles: anyone authenticated can READ a profile; nobody can UPDATE a
+--    profile from the client (role changes etc. go through the service role).
+--    This closes a privilege-escalation path (self-promoting to organizer).
+--
+--  KNOWN ALPHA LIMITATION (tighten for multi-tenant production): the
+--  `read_authenticated` policy lets ANY signed-in user read ALL hackathons'
+--  submissions, participants (incl. email/github), scans, and AI summaries —
+--  not just events they belong to. Fine for a single trusted event / invited
+--  judges; for public multi-tenant use, scope these reads to a membership table
+--  (e.g. judge_assignments / created_by) before launch.
 -- ============================================================================
 
 create extension if not exists "pgcrypto";
@@ -34,7 +59,7 @@ create table if not exists profiles (
   id          uuid primary key references auth.users (id) on delete cascade,
   email       text not null,
   full_name   text not null default '',
-  role        user_role not null default 'judge',
+  role        user_role not null default 'organizer',
   avatar_url  text,
   created_at  timestamptz not null default now()
 );
@@ -46,11 +71,14 @@ create table if not exists hackathons (
   slug                text unique not null,
   website_url         text,
   devpost_url         text,
+  logo_url            text,
   rules_text          text,
   rubric_text         text,
   start_time          timestamptz,
   submission_deadline timestamptz,
   judging_deadline    timestamptz,
+  timezone            text,
+  judges_per_project  integer not null default 1,
   created_by          uuid references profiles (id) on delete set null,
   created_at          timestamptz not null default now()
 );
@@ -79,6 +107,8 @@ create table if not exists submissions (
   source_url      text,
   source          text not null default 'manual',
   status          submission_status not null default 'imported',
+  screenshots_json  jsonb not null default '[]',
+  built_with_json   jsonb not null default '[]',
   created_at      timestamptz not null default now()
 );
 create index if not exists submissions_hackathon_idx on submissions (hackathon_id);
@@ -176,8 +206,10 @@ create table if not exists github_scans (
   contributors_json     jsonb not null default '[]',
   timeline_json         jsonb not null default '[]',
   flags_json            jsonb not null default '[]',
+  languages_json        jsonb not null default '[]',
   review_priority       review_priority not null default 'clean',
   summary               text,
+  readme_md             text,
   created_at            timestamptz not null default now()
 );
 create index if not exists github_scans_submission_idx on github_scans (submission_id);
@@ -187,6 +219,10 @@ create table if not exists ai_summaries (
   id                       uuid primary key default gen_random_uuid(),
   submission_id            uuid not null references submissions (id) on delete cascade,
   summary                  text not null default '',
+  what                     text,
+  who                      text,
+  how                      text,
+  tech_json                jsonb not null default '[]',
   strengths_json           jsonb not null default '[]',
   weaknesses_json          jsonb not null default '[]',
   suggested_questions_json jsonb not null default '[]',
@@ -207,6 +243,23 @@ create table if not exists review_cases (
 );
 create index if not exists review_cases_submission_idx on review_cases (submission_id);
 
+-- ── column backfill (idempotent) ─────────────────────────────────────────────
+-- Folds every post-initial migration into this one file. `create table if not
+-- exists` above does NOT add columns to a table that already exists, so these
+-- `add column if not exists` statements bring an OLDER database fully up to date.
+-- Re-running schema.sql is always safe and leaves any database in the final shape.
+alter table hackathons   add column if not exists logo_url            text;
+alter table hackathons   add column if not exists timezone            text;
+alter table hackathons   add column if not exists judges_per_project  integer not null default 1;
+alter table submissions  add column if not exists screenshots_json  jsonb not null default '[]';
+alter table submissions  add column if not exists built_with_json   jsonb not null default '[]';
+alter table github_scans add column if not exists languages_json    jsonb not null default '[]';
+alter table github_scans add column if not exists readme_md         text;
+alter table ai_summaries add column if not exists what              text;
+alter table ai_summaries add column if not exists who               text;
+alter table ai_summaries add column if not exists how               text;
+alter table ai_summaries add column if not exists tech_json         jsonb not null default '[]';
+
 -- ── updated_at trigger ──────────────────────────────────────────────────────
 create or replace function set_updated_at() returns trigger as $$
 begin
@@ -221,6 +274,11 @@ create trigger judge_scores_updated_at before update on judge_scores
 
 drop trigger if exists review_cases_updated_at on review_cases;
 create trigger review_cases_updated_at before update on review_cases
+  for each row execute function set_updated_at();
+
+-- presentation_scores is upserted on every autosave; keep updated_at honest.
+drop trigger if exists presentation_scores_updated_at on presentation_scores;
+create trigger presentation_scores_updated_at before update on presentation_scores
   for each row execute function set_updated_at();
 
 -- ============================================================================
@@ -258,11 +316,18 @@ drop policy if exists "own_scores_write" on judge_scores;
 create policy "own_scores_write" on judge_scores for all to authenticated
   using (judge_id = auth.uid()) with check (judge_id = auth.uid());
 
--- Everyone authenticated can read a profile; you edit only your own.
+-- Everyone authenticated can read a profile.
 drop policy if exists "profiles_read" on profiles;
 create policy "profiles_read" on profiles for select to authenticated using (true);
+
+-- No client-side profile UPDATE policy ON PURPOSE. All profile edits (name,
+-- avatar, role) go through the service-role key server-side. A self-update policy
+-- here would let any signed-in user run `update profiles set role='organizer'`
+-- from the browser and escalate to organizer — so we drop it and deny by default.
 drop policy if exists "profiles_self" on profiles;
-create policy "profiles_self" on profiles for update to authenticated using (id = auth.uid());
+-- Belt-and-suspenders: even if a permissive UPDATE policy is re-added later, the
+-- role column can never be changed by a normal client.
+revoke update (role) on profiles from authenticated, anon;
 
 -- ============================================================================
 -- Auth → profile bridge. Every new Supabase user gets a profile row, pulling
@@ -282,7 +347,13 @@ begin
     new.id,
     coalesce(new.email, ''),
     coalesce(new.raw_user_meta_data ->> 'full_name', ''),
-    coalesce((new.raw_user_meta_data ->> 'role')::public.user_role, 'judge')
+    -- Validate the role before casting: an unexpected value would otherwise raise
+    -- and surface to the user as "Database error saving new user" (HTTP 500).
+    case
+      when new.raw_user_meta_data ->> 'role' in ('organizer', 'judge', 'participant')
+        then (new.raw_user_meta_data ->> 'role')::public.user_role
+      else 'organizer'::public.user_role
+    end
   )
   on conflict (id) do nothing;
   return new;
@@ -319,3 +390,21 @@ alter table invitations enable row level security;
 drop policy if exists "own_invitations" on invitations;
 create policy "own_invitations" on invitations for all to authenticated
   using (invited_by = auth.uid()) with check (invited_by = auth.uid());
+
+-- ============================================================================
+-- feedback — feature requests / bug reports / contact notes from the public
+-- feedback form. Written via the service-role key on the server, so no public
+-- policy is needed (RLS stays on, denying anon/auth direct access).
+-- ============================================================================
+create table if not exists feedback (
+  id          uuid primary key default gen_random_uuid(),
+  kind        text not null default 'feature', -- feature | bug | other
+  message     text not null,
+  email       text,
+  name        text,
+  user_id     uuid references profiles (id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists feedback_created_idx on feedback (created_at desc);
+
+alter table feedback enable row level security;

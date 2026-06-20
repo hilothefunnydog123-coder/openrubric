@@ -54,7 +54,7 @@ export function RoleChoice() {
         Let&apos;s set up your hackathon
       </motion.h1>
       <p className="mb-9 text-center text-[15px] text-dim">
-        Judges join by invitation — you just bring the event.
+        Judges join by invitation, you just bring the event.
       </p>
 
       <motion.div

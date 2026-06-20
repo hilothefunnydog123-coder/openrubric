@@ -19,6 +19,7 @@ export async function AppShell({
         role={role}
         hasHackathon={Boolean(hackathon)}
         hackathonName={hackathon?.name ?? null}
+        hackathonLogo={hackathon?.logo_url ?? null}
       />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </div>

@@ -11,7 +11,7 @@ begin;
 insert into hackathons (id, name, slug, website_url, devpost_url, rubric_text, start_time, submission_deadline, judging_deadline)
 values ('11111111-1111-1111-1111-111111111111', 'Bay Area AI Hacks 2026', 'bay-area-ai-hacks-2026',
         'bayareaaihacks.org', 'bayareaaihacks.devpost.com',
-        'Innovation (20), Technical Complexity (25), Functionality (20), Design / UX (15), Impact (10), Presentation (10).',
+        'Impact & Problem Quality (15), User Empathy (10), Technical Execution (20), Design & User Experience (12), Creativity & Originality (12), Pitch & Demo Clarity (10), Theme Alignment (6), Technical Understanding (15).',
         '2026-02-14T09:00:00-08:00', '2026-02-16T18:00:00-08:00', '2026-02-17T20:00:00-08:00')
 on conflict (id) do nothing;
 
@@ -24,14 +24,16 @@ insert into tracks (id, hackathon_id, name, description) values
   ('22222222-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Social Impact', 'Projects serving a community need.')
 on conflict (id) do nothing;
 
--- Rubric criteria (default 100-point rubric)
+-- Rubric criteria (canonical 100-point OpenRubric default)
 insert into rubric_criteria (id, hackathon_id, name, description, max_points, weight, sort_order) values
-  ('33333333-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Innovation', 'Originality of the idea and the approach taken.', 20, 1, 0),
-  ('33333333-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Technical Complexity', 'Engineering depth and difficulty of what was built.', 25, 1, 1),
-  ('33333333-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Functionality', 'How much of the product actually works end to end.', 20, 1, 2),
-  ('33333333-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Design / UX', 'Clarity and quality of the experience.', 15, 1, 3),
-  ('33333333-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Impact', 'Potential real-world value and reach.', 10, 1, 4),
-  ('33333333-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'Presentation', 'Quality of the demo and the pitch.', 10, 1, 5)
+  ('33333333-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Impact & Problem Quality', 'How real and important the problem is, and how meaningfully the project moves the needle on it.', 15, 1, 0),
+  ('33333333-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'User Empathy', 'Evidence the team understands who they are building for and what those people actually need.', 10, 1, 1),
+  ('33333333-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Technical Execution', 'Engineering depth and how much of the product actually works end to end.', 20, 1, 2),
+  ('33333333-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Design & User Experience', 'Clarity, polish, and usability of the experience.', 12, 1, 3),
+  ('33333333-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Creativity & Originality', 'Originality of the idea and the approach taken.', 12, 1, 4),
+  ('33333333-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'Pitch & Demo Clarity', 'Quality of the demo and how clearly the team''s story lands.', 10, 1, 5),
+  ('33333333-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'Theme Alignment', 'How well the project fits the hackathon''s theme and prompt.', 6, 1, 6),
+  ('33333333-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'Technical Understanding', 'How well the team understands and can explain what they actually built.', 15, 1, 7)
 on conflict (id) do nothing;
 
 -- Submissions

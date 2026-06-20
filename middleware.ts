@@ -36,7 +36,26 @@ export async function middleware(request: NextRequest) {
   });
 
   // Touch the session to trigger a refresh if needed. Never throws on the request path.
-  await supabase.auth.getUser().catch(() => null);
+  const result = await supabase.auth
+    .getUser()
+    .catch((e: unknown) => ({ error: e as { code?: string; status?: number; message?: string } }));
+  const err = "error" in result ? result.error : null;
+
+  // A stale/invalid refresh token (e.g. the user was deleted, or the session expired
+  // beyond refresh) keeps erroring on every request. Clear the dead `sb-` cookies so the
+  // browser drops the session and stops retrying — the visitor is simply logged out.
+  const invalidSession =
+    err != null &&
+    (err.code === "refresh_token_not_found" ||
+      err.code === "session_not_found" ||
+      err.status === 400 ||
+      /refresh.*token|session.*not.*found/i.test(err.message || ""));
+  if (invalidSession) {
+    request.cookies
+      .getAll()
+      .filter((c) => c.name.startsWith("sb-"))
+      .forEach((c) => response.cookies.set(c.name, "", { maxAge: 0, path: "/" }));
+  }
 
   return response;
 }

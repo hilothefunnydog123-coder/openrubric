@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { scanRepository, isGithubConfigured } from "@/lib/github";
-import { DEMO_HACKATHON, getProject } from "@/lib/demo-data";
+import { getProjectView, getEventWindowForSubmission } from "@/lib/live-data";
 import { rateLimit, clientKey, tooManyRequests } from "@/lib/rate-limit";
 
 const schema = z.object({
@@ -20,15 +20,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const project = getProject(parsed.data.submission_id);
+  const project = await getProjectView(parsed.data.submission_id);
   const repoUrl = parsed.data.repo_url ?? project?.repo_url ?? "";
   const listedHandles = project?.participants.map((p) => p.github_username ?? "").filter(Boolean) ?? [];
+  const { eventStart, submissionDeadline } = await getEventWindowForSubmission(parsed.data.submission_id);
 
   const scan = await scanRepository({
     submissionId: parsed.data.submission_id,
     repoUrl,
-    eventStart: DEMO_HACKATHON.start_time,
-    submissionDeadline: DEMO_HACKATHON.submission_deadline,
+    eventStart,
+    submissionDeadline,
     listedHandles,
   });
 

@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { DEMO_PROJECTS } from "@/lib/demo-data";
+import { getActiveHackathon, listProjectViews } from "@/lib/live-data";
 
-/** GET /api/submissions/search?q=&track=  — case-insensitive search over demo data. */
+/** GET /api/submissions/search?q=&track=  — case-insensitive search over live submissions. */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") ?? "").toLowerCase().trim();
   const track = (searchParams.get("track") ?? "").toLowerCase().trim();
 
-  const results = DEMO_PROJECTS.filter((p) => {
+  const hackathon = await getActiveHackathon();
+  const projects = hackathon ? await listProjectViews(hackathon.id) : [];
+
+  const results = projects.filter((p) => {
     const matchesQuery =
       !q ||
       p.project_name.toLowerCase().includes(q) ||

@@ -59,6 +59,29 @@ export async function POST(req: Request) {
   });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
+  // The inviter is the logged-in ORGANIZER (host) — not the judge being invited.
+  // Resolve their name from their profile so the email reads correctly.
+  let inviterName: string | undefined;
+  if (invitedBy) {
+    const { data: host } = await service
+      .from("profiles")
+      .select("full_name")
+      .eq("id", invitedBy)
+      .maybeSingle();
+    inviterName = host?.full_name || undefined;
+  }
+
+  // Prefer the hackathon's real name; resolve from id when not passed in.
+  let hackathonName = parsed.data.hackathon_name;
+  if (!hackathonName && parsed.data.hackathon_id) {
+    const { data: hk } = await service
+      .from("hackathons")
+      .select("name")
+      .eq("id", parsed.data.hackathon_id)
+      .maybeSingle();
+    hackathonName = hk?.name || undefined;
+  }
+
   const base = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
   const acceptLink = `${base}/sign-up?invite=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
@@ -67,8 +90,8 @@ export async function POST(req: Request) {
   }
   const sent = await sendJudgeInviteEmail(email, {
     acceptLink,
-    hackathonName: parsed.data.hackathon_name,
-    inviterName: parsed.data.name,
+    hackathonName,
+    inviterName,
   });
   if (!sent.sent) {
     return NextResponse.json({ ok: false, error: sent.error || "Could not send the invite." }, { status: 502 });

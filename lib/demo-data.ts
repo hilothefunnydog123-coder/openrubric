@@ -30,7 +30,7 @@ export const DEMO_HACKATHON: Hackathon = {
   devpost_url: "bayareaaihacks.devpost.com",
   rules_text: null,
   rubric_text:
-    "Innovation (20), Technical Complexity (25), Functionality (20), Design / UX (15), Impact (10), Presentation (10).",
+    "Impact & Problem Quality (15), User Empathy (10), Technical Execution (20), Design & User Experience (12), Creativity & Originality (12), Pitch & Demo Clarity (10), Theme Alignment (6), Technical Understanding (15).",
   start_time: "2026-02-14T09:00:00-08:00",
   submission_deadline: "2026-02-16T18:00:00-08:00",
   judging_deadline: "2026-02-17T20:00:00-08:00",
@@ -46,14 +46,20 @@ export const DEMO_TRACKS: Track[] = [
   { id: "social-impact", hackathon_id: DEMO_HACKATHON.id, name: "Social Impact", description: "Projects serving a community need." },
 ];
 
-/** Default 100-point rubric — also the wizard's pre-filled criteria. */
+/**
+ * Default 100-point rubric — also the wizard's pre-filled criteria. This is the
+ * canonical OpenRubric rubric every new hackathon starts from; organizers can edit
+ * it or auto-generate one from a picture in the setup wizard.
+ */
 export const DEFAULT_CRITERIA: RubricCriterion[] = [
-  { id: "innovation", hackathon_id: DEMO_HACKATHON.id, name: "Innovation", description: "Originality of the idea and the approach taken.", max_points: 20, weight: 1, sort_order: 0, helper: "A fresh take, or a known pattern reapplied?" },
-  { id: "technical", hackathon_id: DEMO_HACKATHON.id, name: "Technical Complexity", description: "Engineering depth and difficulty of what was built.", max_points: 25, weight: 1, sort_order: 1, helper: "How hard was this to build well?" },
-  { id: "functionality", hackathon_id: DEMO_HACKATHON.id, name: "Functionality", description: "How much of the product actually works end to end.", max_points: 20, weight: 1, sort_order: 2, helper: "Working product vs. demo-only?" },
-  { id: "design", hackathon_id: DEMO_HACKATHON.id, name: "Design / UX", description: "Clarity and quality of the experience.", max_points: 15, weight: 1, sort_order: 3, helper: "Is it usable and considered?" },
-  { id: "impact", hackathon_id: DEMO_HACKATHON.id, name: "Impact", description: "Potential real-world value and reach.", max_points: 10, weight: 1, sort_order: 4, helper: "Who benefits, and how much?" },
-  { id: "presentation", hackathon_id: DEMO_HACKATHON.id, name: "Presentation", description: "Quality of the demo and the pitch.", max_points: 10, weight: 1, sort_order: 5, helper: "Clear story, confident demo?" },
+  { id: "impact", hackathon_id: DEMO_HACKATHON.id, name: "Impact & Problem Quality", description: "How real and important the problem is, and how meaningfully the project moves the needle on it.", max_points: 15, weight: 1, sort_order: 0, helper: "Real problem — real dent in it?" },
+  { id: "empathy", hackathon_id: DEMO_HACKATHON.id, name: "User Empathy", description: "Evidence the team understands who they are building for and what those people actually need.", max_points: 10, weight: 1, sort_order: 1, helper: "Do they truly know their user?" },
+  { id: "technical", hackathon_id: DEMO_HACKATHON.id, name: "Technical Execution", description: "Engineering depth and how much of the product actually works end to end.", max_points: 20, weight: 1, sort_order: 2, helper: "How hard was this to build well?" },
+  { id: "design", hackathon_id: DEMO_HACKATHON.id, name: "Design & User Experience", description: "Clarity, polish, and usability of the experience.", max_points: 12, weight: 1, sort_order: 3, helper: "Is it usable and considered?" },
+  { id: "creativity", hackathon_id: DEMO_HACKATHON.id, name: "Creativity & Originality", description: "Originality of the idea and the approach taken.", max_points: 12, weight: 1, sort_order: 4, helper: "A fresh take, or a known pattern reapplied?" },
+  { id: "pitch", hackathon_id: DEMO_HACKATHON.id, name: "Pitch & Demo Clarity", description: "Quality of the demo and how clearly the team's story lands.", max_points: 10, weight: 1, sort_order: 5, helper: "Clear story, confident demo?" },
+  { id: "theme", hackathon_id: DEMO_HACKATHON.id, name: "Theme Alignment", description: "How well the project fits the hackathon's theme and prompt.", max_points: 6, weight: 1, sort_order: 6, helper: "On-theme?" },
+  { id: "understanding", hackathon_id: DEMO_HACKATHON.id, name: "Technical Understanding", description: "How well the team understands and can explain what they actually built.", max_points: 15, weight: 1, sort_order: 7, helper: "Do they understand their own build?" },
 ];
 
 /** Default track set offered in the setup wizard. */

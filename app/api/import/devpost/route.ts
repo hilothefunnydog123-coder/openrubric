@@ -6,7 +6,7 @@ import { rateLimit, clientKey, tooManyRequests } from "@/lib/rate-limit";
 export const runtime = "nodejs"; // cheerio + fetch need the Node runtime
 export const maxDuration = 60;
 
-const FALLBACK = "Couldn't import automatically. Upload CSV or paste project links manually.";
+const FALLBACK = "Couldn't reach that Devpost gallery automatically. If your event isn't on Devpost, contact us and we'll help you import.";
 
 /**
  * POST /api/import/devpost — scrape PUBLIC Devpost project metadata for a hackathon.
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
         repo_url: p.repo_url,
         devpost_url: p.devpost_url,
         live_url: p.live_url,
+        video_url: p.video_url,
         description: p.description,
         members: p.members,
         built_with: p.built_with,

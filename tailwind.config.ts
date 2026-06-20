@@ -109,12 +109,18 @@ const config: Config = {
           "0%": { backgroundPosition: "200% 0" },
           "100%": { backgroundPosition: "-200% 0" },
         },
+        indeterminate: {
+          "0%": { left: "-40%", width: "40%" },
+          "50%": { left: "30%", width: "55%" },
+          "100%": { left: "100%", width: "40%" },
+        },
       },
       animation: {
         blink: "blink 1.1s step-end infinite",
         "pulse-dot": "pulse-dot 0.8s ease-in-out infinite",
         floatup: "floatup 0.5s ease-out both",
         shimmer: "shimmer 2.2s linear infinite",
+        indeterminate: "indeterminate 1.1s ease-in-out infinite",
       },
     },
   },

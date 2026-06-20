@@ -1,5 +1,7 @@
 import { prettyUrl } from "@/lib/utils";
 import { TechIcon } from "@/components/ui/tech-icon";
+import { ScreenshotGallery } from "./screenshot-gallery";
+import { ReadmeCard } from "./readme-card";
 import type { ProjectView } from "@/lib/types";
 
 /**
@@ -13,13 +15,76 @@ function ext(url: string | null): string {
   return url.startsWith("http") ? url : `https://${url}`;
 }
 
-export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
+/**
+ * ISO timestamp → "May 23, 2026, 7:01 PM PDT" rendered in the hackathon's timezone.
+ * An explicit `timeZone` makes the output identical on server and client (no hydration
+ * drift) and shows judges the time in the event's local zone, not raw UTC.
+ */
+function fmtDateTime(iso: string, timeZone: string | null): string {
+  if (!iso) return "N/A";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timeZone || "UTC",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZoneName: "short",
+    }).format(d);
+  } catch {
+    // Invalid IANA zone — fall back to UTC.
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZoneName: "short",
+    }).format(d);
+  }
+}
+
+export function ScreenshotsGithubCard({
+  project,
+  timezone = null,
+  readme = null,
+}: {
+  project: ProjectView;
+  timezone?: string | null;
+  /** The repo's README markdown (scan-cached or fetched on demand by the page). */
+  readme?: string | null;
+}) {
   const shots = project.screenshots ?? [];
   const scan = project.scan;
   const contributors = scan.contributors_json ?? [];
+  const readmeText = readme ?? scan.readme_md ?? null;
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Demo video (Vimeo / YouTube), when the project has one */}
+      {project.demo_video_url && (
+        <div className="rounded-[14px] border border-line bg-surface p-5">
+          <div className="mb-3.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
+            Demo video
+          </div>
+          <div className="aspect-video w-full overflow-hidden rounded-[10px] border border-line bg-black">
+            <iframe
+              src={project.demo_video_url}
+              title={`${project.project_name} demo video`}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
+
       {/* Screenshots */}
       <div className="rounded-[14px] border border-line bg-surface p-5">
         <div className="mb-3.5 flex items-center justify-between">
@@ -34,28 +99,10 @@ export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
         {shots.length === 0 ? (
           <p className="text-[13px] text-dim">
             No screenshots were captured for this project. They&apos;re pulled from the public Devpost
-            gallery on import — CSV/manual entries won&apos;t have them.
+            gallery on import — some projects don&apos;t upload any, or Devpost blocked the scrape.
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {shots.map((src, i) => (
-              <a
-                key={src}
-                href={src}
-                target="_blank"
-                rel="noreferrer"
-                className="group block overflow-hidden rounded-[10px] border border-line"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={src}
-                  alt={`${project.project_name} screenshot ${i + 1}`}
-                  loading="lazy"
-                  className="aspect-[4/3] w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-                />
-              </a>
-            ))}
-          </div>
+          <ScreenshotGallery shots={shots} name={project.project_name} />
         )}
       </div>
 
@@ -96,10 +143,17 @@ export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
 
             <LanguagesBar languages={scan.languages_json ?? []} />
 
-            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-line-soft pt-4">
+            <div className="mt-4 grid grid-cols-3 gap-3 border-t border-line-soft pt-4">
               <Stat label="Commits" value={String(scan.total_commits)} />
               <Stat label="Contributors" value={String(contributors.length)} />
-              <Stat label="Last commit" value={scan.last_commit_at} />
+              <div className="min-w-0">
+                <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-faint">
+                  Last commit
+                </div>
+                <div className="mt-0.5 text-[12.5px] font-medium leading-snug text-ink">
+                  {fmtDateTime(scan.last_commit_at, timezone)}
+                </div>
+              </div>
             </div>
 
             <a
@@ -116,6 +170,9 @@ export function ScreenshotsGithubCard({ project }: { project: ProjectView }) {
           <p className="text-[13px] text-dim">No repository linked — N/A.</p>
         )}
       </div>
+
+      {/* The repo's real README, rendered inline */}
+      {readmeText && <ReadmeCard readme={readmeText} repoUrl={project.repo_url} />}
     </div>
   );
 }

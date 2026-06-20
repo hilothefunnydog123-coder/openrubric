@@ -21,17 +21,19 @@ function Metric({ label, value, danger }: { label: string; value: string; danger
 
 export function OrganizerDashboard({
   projects,
+  reviewCases = [],
   hackathonId,
   devpostUrl = null,
+  submissionDeadline = null,
   judgeCount = 0,
 }: {
   projects: ProjectView[];
+  reviewCases?: ReviewCase[];
   hackathonId: string | null;
   devpostUrl?: string | null;
+  submissionDeadline?: string | null;
   judgeCount?: number;
 }) {
-  const reviewCases: ReviewCase[] = [];
-
   const doneSlots = projects.reduce((a, p) => a + p.judgesDone, 0);
   const totalSlots = projects.reduce((a, p) => a + p.judgesTotal, 0);
   const needsReview = projects.filter(
@@ -82,13 +84,19 @@ export function OrganizerDashboard({
         {/* table + rail */}
         <div className="grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[1.65fr_1fr]">
           <div className="flex flex-col gap-[22px]">
-            {hackathonId && <LiveImport hackathonId={hackathonId} devpostUrl={devpostUrl} />}
+            {hackathonId && (
+              <LiveImport
+                hackathonId={hackathonId}
+                devpostUrl={devpostUrl}
+                submissionDeadline={submissionDeadline}
+              />
+            )}
             {projects.length === 0 ? (
               <div className="rounded-[14px] border border-dashed border-line bg-surface px-5 py-10 text-center">
                 <div className="text-[15px] font-semibold">No projects yet</div>
                 <p className="mx-auto mt-1.5 max-w-[42ch] text-[13px] text-dim">
-                  Import a Devpost gallery or upload a CSV above — projects scan and summarize as
-                  they come in.
+                  Paste your Devpost gallery above — projects scan and summarize as they come in, and
+                  new submissions keep syncing automatically until your deadline.
                 </p>
               </div>
             ) : (
@@ -129,7 +137,7 @@ export function OrganizerDashboard({
               </div>
             )}
 
-            <ReviewQueue reviewCases={reviewCases} />
+            <ReviewQueue reviewCases={reviewCases} projects={projects} />
           </div>
         </div>
       </div>

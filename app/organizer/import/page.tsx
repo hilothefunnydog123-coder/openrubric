@@ -4,11 +4,17 @@ import { AppShell } from "@/components/app/app-shell";
 import { TopNav } from "@/components/app/top-nav";
 import { Button } from "@/components/ui/button";
 import { DevpostImportForm } from "@/components/organizer/devpost-import-form";
+import { ManualSubmissionForm } from "@/components/organizer/manual-submission-form";
+import { requireRole } from "@/lib/auth";
+import { getActiveHackathon } from "@/lib/live-data";
 import { ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Import submissions" };
+export const dynamic = "force-dynamic";
 
-export default function ImportPage() {
+export default async function ImportPage() {
+  await requireRole("organizer");
+  const hackathon = await getActiveHackathon();
   return (
     <AppShell role="organizer">
       <TopNav
@@ -29,7 +35,14 @@ export default function ImportPage() {
             Import from a public Devpost URL, upload a CSV, or add projects by hand. You can edit
             everything later.
           </p>
-          <DevpostImportForm />
+          <DevpostImportForm hackathonId={hackathon?.id ?? null} />
+        </div>
+
+        <div className="mt-5">
+          <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.12em] text-faint">
+            Didn&apos;t scrape? Add it by hand
+          </div>
+          <ManualSubmissionForm hackathonId={hackathon?.id ?? null} />
         </div>
       </div>
     </AppShell>

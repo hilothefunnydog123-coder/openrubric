@@ -18,9 +18,6 @@ export function AIProjectSummaryCard({ ai }: { ai: AiSummary }) {
         <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-accent">
           AI Quick Summary
         </span>
-        <span className="rounded-[5px] border border-line px-1.5 py-px font-mono text-[10px] text-faint">
-          draft
-        </span>
       </div>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">

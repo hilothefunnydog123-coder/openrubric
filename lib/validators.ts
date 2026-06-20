@@ -107,6 +107,10 @@ export const scoreAutosaveSchema = z.object({
   scores: z.record(z.string(), z.number().min(0)),
   presentation: z.record(z.string(), z.number().min(0)).optional(),
   comment: z.string().optional(),
+  // When the client knows whether every criterion is scored, it sends this so the
+  // autosave can flip is_final + the assignment status (In Progress ↔ Completed)
+  // without a separate "submit" step.
+  complete: z.boolean().optional(),
 });
 
 export const scoreSubmitSchema = scoreAutosaveSchema.extend({
@@ -119,6 +123,16 @@ export const reviewResolveSchema = z.object({
   organizer_notes: z.string().optional().default(""),
   final_decision: z.string().optional().default(""),
 });
+
+// ── Feedback / feature requests ──────────────────────────────────────────
+export const feedbackSchema = z.object({
+  // "feature" = a feature request, "bug" = a problem report, "other" = general note.
+  kind: z.enum(["feature", "bug", "other"]).default("feature"),
+  message: z.string().min(5, "Tell us a little more").max(5000),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  name: z.string().max(120).optional().default(""),
+});
+export type FeedbackValues = z.infer<typeof feedbackSchema>;
 
 export type SignInValues = z.infer<typeof signInSchema>;
 export type SignUpValues = z.infer<typeof signUpSchema>;

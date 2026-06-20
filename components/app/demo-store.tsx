@@ -5,13 +5,14 @@
  *
  * Holds the CURRENT judge's mutable scoring state across the whole app so the judge
  * dashboard, grading workspace, and (read-only) organizer views stay in sync as you
- * score. Seeded from lib/demo-data and persisted to localStorage so a refresh keeps
- * your work.
+ * score. On mount it hydrates the judge's own saved scores from Supabase (so work
+ * follows them across devices) and persists to localStorage for instant reloads.
  *
  * Autosave is real: any edit is debounced (850ms) and POSTed to /api/scores/autosave,
- * keyed by (submission_id, judge_id) so judges never overwrite each other. The status
- * reflects the actual network result (saved / saving / unsaved). Submitting a final
- * score is a real round-trip to /api/scores/submit (see grading-workspace).
+ * keyed by (submission_id, judge_id) so judges never overwrite each other. When every
+ * criterion is scored, that same autosave auto-finalizes the submission (status →
+ * Completed) — there's no separate "submit" step. The indicator reflects the network
+ * result (saved / saving / unsaved).
  */
 
 import {
@@ -23,9 +24,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { SEED_COMMENTS, SEED_PRESENTATION, SEED_SCORES, CURRENT_JUDGE } from "@/lib/demo-data";
 import { useSession } from "@/lib/session";
 import type { AutosaveStatus, PresentationMap, ScoreMap } from "@/lib/types";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface DemoContextValue {
   autosave: AutosaveStatus;
@@ -37,6 +39,8 @@ interface DemoContextValue {
   setPresentation: (submissionId: string, key: string, value: number) => void;
   setComment: (submissionId: string, text: string) => void;
   finalizeSubmission: (submissionId: string) => void;
+  /** Tell the store which criteria a submission has, so autosave can auto-finalize. */
+  registerCriteria: (submissionId: string, criterionIds: string[]) => void;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
@@ -50,19 +54,22 @@ interface Persisted {
 }
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
-  const [scores, setScores] = useState<Record<string, ScoreMap>>(SEED_SCORES);
-  const [presentation, setPresentation] = useState<Record<string, PresentationMap>>(SEED_PRESENTATION);
-  const [comments, setComments] = useState<Record<string, string>>(SEED_COMMENTS);
+  const [scores, setScores] = useState<Record<string, ScoreMap>>({});
+  const [presentation, setPresentation] = useState<Record<string, PresentationMap>>({});
+  const [comments, setComments] = useState<Record<string, string>>({});
   const [finalized, setFinalized] = useState<Record<string, boolean>>({});
   const [autosave, setAutosave] = useState<AutosaveStatus>("saved");
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydrated = useRef(false);
+  // Criterion ids per submission (registered by the grading view) → lets autosave decide
+  // when a submission is fully scored and should auto-finalize.
+  const criteriaRef = useRef<Record<string, string[]>>({});
 
-  // Attribute autosaves to the real logged-in judge (falls back to the demo id).
+  // Attribute autosaves to the real logged-in judge.
   const { user } = useSession();
-  const judgeIdRef = useRef<string>(CURRENT_JUDGE.id);
-  judgeIdRef.current = user?.id ?? CURRENT_JUDGE.id;
+  const judgeIdRef = useRef<string>("");
+  judgeIdRef.current = user?.id ?? "";
 
   // Latest-value refs so the debounced save always POSTs current state.
   const scoresRef = useRef(scores);
@@ -89,6 +96,32 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     hydrated.current = true;
   }, []);
 
+  // Pull this judge's saved scores from the server so work follows them across devices.
+  // The server is the source of truth; it merges over whatever localStorage had.
+  useEffect(() => {
+    const judgeId = user?.id;
+    if (!judgeId || !UUID.test(judgeId)) return;
+    let cancelled = false;
+    fetch(`/api/scores/autosave?judge_id=${encodeURIComponent(judgeId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        if (d.scores && Object.keys(d.scores).length) {
+          setScores((prev) => ({ ...prev, ...d.scores }));
+        }
+        if (d.presentation && Object.keys(d.presentation).length) {
+          setPresentation((prev) => ({ ...prev, ...d.presentation }));
+        }
+        if (d.finalized && Object.keys(d.finalized).length) {
+          setFinalized((prev) => ({ ...prev, ...d.finalized }));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   // Persist after hydration.
   useEffect(() => {
     if (!hydrated.current) return;
@@ -109,6 +142,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     setAutosave("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
+      // Completeness drives auto-finalize: every registered criterion scored → Completed,
+      // and back to In Progress if a score is later lowered to 0.
+      const ids = criteriaRef.current[submissionId];
+      const sc = scoresRef.current[submissionId] ?? {};
+      const complete = ids && ids.length ? ids.every((id) => (sc[id] || 0) > 0) : undefined;
+      if (complete !== undefined) {
+        setFinalized((prev) => (prev[submissionId] === complete ? prev : { ...prev, [submissionId]: complete }));
+      }
       try {
         const res = await fetch("/api/scores/autosave", {
           method: "POST",
@@ -116,9 +157,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({
             submission_id: submissionId,
             judge_id: judgeIdRef.current,
-            scores: scoresRef.current[submissionId] ?? {},
+            scores: sc,
             presentation: presentationRef.current[submissionId] ?? {},
             comment: commentsRef.current[submissionId] ?? "",
+            ...(complete !== undefined ? { complete } : {}),
           }),
         });
         setAutosave(res.ok ? "saved" : "unsaved");
@@ -162,6 +204,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     setFinalized((prev) => ({ ...prev, [submissionId]: true }));
   }, []);
 
+  const registerCriteria = useCallback((submissionId: string, criterionIds: string[]) => {
+    criteriaRef.current[submissionId] = criterionIds;
+  }, []);
+
   const value = useMemo<DemoContextValue>(
     () => ({
       autosave,
@@ -173,8 +219,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       setPresentation: setPresentationValue,
       setComment,
       finalizeSubmission,
+      registerCriteria,
     }),
-    [autosave, scores, presentation, comments, finalized, setScore, setPresentationValue, setComment, finalizeSubmission],
+    [autosave, scores, presentation, comments, finalized, setScore, setPresentationValue, setComment, finalizeSubmission, registerCriteria],
   );
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;

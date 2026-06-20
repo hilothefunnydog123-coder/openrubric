@@ -8,9 +8,9 @@ import { colorForId, initials } from "@/lib/utils";
 /**
  * Live "also viewing" presence.
  *
- * Subscribes to the same `grade:{submissionId}` channel the shared notes track on,
- * so it shows the other judges currently on this project in real time. In demo mode
- * (no Supabase) it shows a realistic placeholder set.
+ * Subscribes to the same `grade:{submissionId}` channel the shared notes track on, so it
+ * shows the REAL other judges currently on this project in real time. There are no
+ * placeholder names — when nobody else is here, the strip simply doesn't render.
  */
 
 interface Viewer {
@@ -19,11 +19,6 @@ interface Viewer {
   color: string;
 }
 
-const DEMO_VIEWERS: Viewer[] = [
-  { id: "alex-chen", name: "Alex Chen", color: "#2563EB" },
-  { id: "maya-patel", name: "Maya Patel", color: "#8B5CF6" },
-];
-
 export function RealtimeJudgePresence({ submissionId }: { submissionId: string }) {
   const { user } = useSession();
   const [viewers, setViewers] = useState<Viewer[]>([]);
@@ -31,7 +26,8 @@ export function RealtimeJudgePresence({ submissionId }: { submissionId: string }
 
   useEffect(() => {
     if (!live) {
-      setViewers(DEMO_VIEWERS);
+      // No Supabase session → no real peers to show. Never invent judges.
+      setViewers([]);
       return;
     }
     const sb = getSupabaseBrowserClient();

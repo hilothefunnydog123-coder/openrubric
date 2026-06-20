@@ -1,17 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProfileMenu } from "@/components/app/profile-menu";
 import { useDemo } from "@/components/app/demo-store";
-import { useSession } from "@/lib/session";
-import { totalScore } from "@/lib/scoring";
-import { prettyUrl } from "@/lib/utils";
+import { isComplete, rubricMax, totalScore } from "@/lib/scoring";
+import { cn, prettyUrl } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
-import { DEFAULT_CRITERIA, CURRENT_JUDGE } from "@/lib/demo-data";
+import { DEFAULT_CRITERIA } from "@/lib/demo-data";
 import type { ProjectView, RubricCriterion } from "@/lib/types";
 
 import { AutosaveIndicator } from "./autosave-indicator";
@@ -21,6 +20,7 @@ import { SuggestedQuestionsCard } from "./suggested-questions-card";
 import { RubricScoreEditor } from "./rubric-score-editor";
 import { PresentationScoreEditor } from "./presentation-score-editor";
 import { ScreenshotsGithubCard } from "./screenshots-github-card";
+import { DevpostWriteup } from "./devpost-writeup";
 import { CollaborativeNotes } from "./collaborative-notes";
 import { GitHubTimelineCard } from "./github-timeline-card";
 import { OriginalityFlagCard } from "./originality-flag-card";
@@ -30,42 +30,44 @@ function ext(url: string | null): string {
   return url.startsWith("http") ? url : `https://${url}`;
 }
 
+
 export function GradingWorkspace({
   project,
   criteria = DEFAULT_CRITERIA,
+  viewerRole = "judge",
+  backHref = ROUTES.judgeDashboard,
+  timezone = null,
+  readme = null,
 }: {
   project: ProjectView;
   criteria?: RubricCriterion[];
+  /** Organizers get a read-only review — no scoring, no final submit. */
+  viewerRole?: "organizer" | "judge";
+  /** Where the "← All projects" link goes (kept in the viewer's own lane). */
+  backHref?: string;
+  /** Hackathon IANA timezone — commit times render in this zone. */
+  timezone?: string | null;
+  /** The repo's README markdown, fetched server-side and shown in the GitHub view. */
+  readme?: string | null;
 }) {
-  const { scoresFor, presentationFor, isFinalized, finalizeSubmission } = useDemo();
-  const { user } = useSession();
+  const { scoresFor, registerCriteria } = useDemo();
+  const reviewOnly = viewerRole === "organizer";
   const [tab, setTab] = useState("summary");
-  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "error">("idle");
 
-  const total = totalScore(scoresFor(project.id), criteria);
-  const submitted = isFinalized(project.id);
+  const scores = scoresFor(project.id);
+  const total = totalScore(scores, criteria);
+  const max = rubricMax(criteria);
+  const complete = !reviewOnly && isComplete(scores, criteria);
+  const started = total > 0;
 
-  async function submitFinal() {
-    setSubmitState("submitting");
-    try {
-      const res = await fetch("/api/scores/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          submission_id: project.id,
-          judge_id: user?.id ?? CURRENT_JUDGE.id,
-          scores: scoresFor(project.id),
-          presentation: presentationFor(project.id),
-          is_final: true,
-        }),
-      });
-      if (!res.ok) throw new Error(`submit failed (${res.status})`);
-      finalizeSubmission(project.id);
-      setSubmitState("idle");
-    } catch {
-      setSubmitState("error");
-    }
-  }
+  // Register this submission's criteria so autosave knows when every one is scored and can
+  // auto-finalize. There's no manual "submit" — scoring saves and completes on its own.
+  useEffect(() => {
+    registerCriteria(
+      project.id,
+      criteria.map((c) => c.id),
+    );
+  }, [project.id, criteria, registerCriteria]);
 
   const links = [
     { label: "Devpost", url: project.devpost_url },
@@ -80,7 +82,7 @@ export function GradingWorkspace({
       <div className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-line bg-background/85 px-6 py-3.5 backdrop-blur-[12px]">
         <div className="flex min-w-0 items-center gap-4">
           <Button asChild variant="secondary" size="sm">
-            <Link href={ROUTES.judgeDashboard}>← All projects</Link>
+            <Link href={backHref}>{reviewOnly ? "Dashboard" : "All projects"}</Link>
           </Button>
           <div className="min-w-0">
             <div className="truncate text-[16px] font-semibold tracking-[-0.01em]">
@@ -92,29 +94,40 @@ export function GradingWorkspace({
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden sm:block">
-            <AutosaveIndicator variant="inline" />
-          </div>
-          <span className="text-[15px] font-bold tracking-[-0.01em] tabular-nums">
-            {total}
-            <span className="font-medium text-faint"> / 100</span>
-          </span>
-          {submitState === "error" && (
-            <span className="hidden font-mono text-[11px] text-signal-high sm:inline">
-              Couldn’t submit — retry
-            </span>
+          {!reviewOnly && (
+            <div className="hidden sm:block">
+              <AutosaveIndicator variant="inline" />
+            </div>
           )}
-          <Button
-            onClick={submitFinal}
-            disabled={submitted || submitState === "submitting"}
-            className="whitespace-nowrap"
-          >
-            {submitted
-              ? "Final score submitted ✓"
-              : submitState === "submitting"
-                ? "Submitting…"
-                : "Submit final score"}
-          </Button>
+          {reviewOnly ? (
+            <Badge variant="outline" className="whitespace-nowrap">
+              Organizer review · read-only
+            </Badge>
+          ) : (
+            <>
+              <span className="text-[15px] font-bold tracking-[-0.01em] tabular-nums">
+                {total}
+                <span className="font-medium text-faint"> / {max}</span>
+              </span>
+              {/* Status auto-updates as you score — no submit button, it all autosaves. */}
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12.5px] font-semibold",
+                  complete
+                    ? "border-[rgba(46,138,94,0.3)] bg-[rgba(46,138,94,0.08)] text-signal-clean"
+                    : "border-line bg-surface text-dim",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    complete ? "bg-signal-clean-dot" : started ? "bg-signal-review-dot" : "bg-[#C9C4BA]",
+                  )}
+                />
+                {complete ? "Completed" : started ? "In progress" : "Not started"}
+              </span>
+            </>
+          )}
           <ProfileMenu />
         </div>
       </div>
@@ -129,7 +142,9 @@ export function GradingWorkspace({
           <Badge variant="accent" className="mb-5">
             {project.track}
           </Badge>
-          <p className="mb-[22px] text-[13.5px] leading-[1.55] text-dim">{project.description}</p>
+          <p className="mb-[22px] line-clamp-6 text-[13.5px] leading-[1.55] text-dim">
+            {project.ai.what || project.description}
+          </p>
 
           <div className="mb-2.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">
             Participants
@@ -174,28 +189,40 @@ export function GradingWorkspace({
             <TabsList className="mb-[22px] flex-wrap">
               <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="questions">Questions</TabsTrigger>
-              <TabsTrigger value="scoring">Scoring</TabsTrigger>
+              {!reviewOnly && <TabsTrigger value="scoring">Scoring</TabsTrigger>}
               <TabsTrigger value="screenshots">Screenshots</TabsTrigger>
               <TabsTrigger value="comments">Comments</TabsTrigger>
             </TabsList>
 
             <TabsContent value="summary">
-              <AIProjectSummaryCard ai={project.ai} />
+              <div className="flex flex-col gap-6">
+                <AIProjectSummaryCard ai={project.ai} />
+                {project.description && project.description.length > 80 && (
+                  <div className="rounded-[14px] border border-line bg-surface p-5">
+                    <div className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">
+                      Full Devpost write-up
+                    </div>
+                    <DevpostWriteup text={project.description} />
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="questions">
               <SuggestedQuestionsCard questions={project.ai.suggested_questions_json} />
             </TabsContent>
 
-            <TabsContent value="scoring">
-              <div className="flex flex-col gap-6">
-                <RubricScoreEditor submissionId={project.id} criteria={criteria} />
-                <PresentationScoreEditor submissionId={project.id} />
-              </div>
-            </TabsContent>
+            {!reviewOnly && (
+              <TabsContent value="scoring">
+                <div className="flex flex-col gap-6">
+                  <RubricScoreEditor submissionId={project.id} criteria={criteria} />
+                  <PresentationScoreEditor submissionId={project.id} />
+                </div>
+              </TabsContent>
+            )}
 
             <TabsContent value="screenshots">
-              <ScreenshotsGithubCard project={project} />
+              <ScreenshotsGithubCard project={project} timezone={timezone} readme={readme} />
             </TabsContent>
 
             <TabsContent value="comments">
@@ -207,15 +234,17 @@ export function GradingWorkspace({
         {/* RIGHT — evidence */}
         <aside className="border-t border-line bg-raised p-6 md:border-l md:border-t-0">
           <RealtimeJudgePresence submissionId={project.id} />
-          <AutosaveIndicator variant="chip" />
+          {!reviewOnly && <AutosaveIndicator variant="chip" />}
           <GitHubTimelineCard scan={project.scan} />
           <OriginalityFlagCard scan={project.scan} />
           <div className="rounded-[13px] border border-line bg-surface p-4">
             <div className="mb-2.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-dim">
-              Organizer note
+              {reviewOnly ? "Review note" : "Organizer note"}
             </div>
             <div className="text-[12.5px] leading-[1.5] text-dim">
-              No action requested. Score against the rubric as usual.
+              {reviewOnly
+                ? "You're viewing this as an organizer — judges score it from their own dashboard."
+                : "No action requested. Score against the rubric as usual."}
             </div>
           </div>
         </aside>

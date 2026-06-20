@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
-import { getProject } from "@/lib/demo-data";
-import type { ReviewCase } from "@/lib/types";
+import type { ProjectView, ReviewCase } from "@/lib/types";
 
-export function ReviewQueue({ reviewCases }: { reviewCases: ReviewCase[] }) {
+export function ReviewQueue({
+  reviewCases,
+  projects,
+}: {
+  reviewCases: ReviewCase[];
+  projects: ProjectView[];
+}) {
   const open = reviewCases.filter((rc) => rc.status === "open");
+  const nameById = new Map(projects.map((p) => [p.id, p.project_name]));
 
   return (
     <div className="rounded-[14px] border border-line bg-surface p-[18px]">
@@ -16,7 +22,7 @@ export function ReviewQueue({ reviewCases }: { reviewCases: ReviewCase[] }) {
       </div>
       <div className="flex flex-col gap-2.5">
         {open.map((rc) => {
-          const project = getProject(rc.submission_id);
+          const projectName = nameById.get(rc.submission_id);
           return (
             <Link
               key={rc.id}
@@ -24,7 +30,7 @@ export function ReviewQueue({ reviewCases }: { reviewCases: ReviewCase[] }) {
               className="flex items-center justify-between gap-2.5 rounded-[10px] border border-line-soft bg-raised px-3 py-2.5 transition-colors hover:border-ink"
             >
               <div className="min-w-0">
-                <div className="text-[13px] font-semibold">{project?.project_name ?? rc.submission_id}</div>
+                <div className="text-[13px] font-semibold">{projectName ?? rc.submission_id}</div>
                 <div className="font-mono text-[10.5px] text-faint">{rc.reason}</div>
               </div>
               <span

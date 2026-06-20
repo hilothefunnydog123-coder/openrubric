@@ -5,17 +5,19 @@ import { RankingsTable } from "@/components/rankings/rankings-table";
 import { TrackWinnersPanel } from "@/components/rankings/track-winners-panel";
 import { ScoreBreakdownChart } from "@/components/rankings/score-breakdown-chart";
 import { ExportButton } from "@/components/rankings/export-button";
-import { getActiveHackathon, listProjectViews } from "@/lib/live-data";
+import { requireRole } from "@/lib/auth";
+import { getActiveHackathon, listProjectViews, listReviewCases } from "@/lib/live-data";
 import { rankProjects, suggestedOverallWinner, trackWinners } from "@/lib/scoring";
-import type { ReviewCase } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Organizer · Rankings" };
 export const dynamic = "force-dynamic";
 
 export default async function RankingsPage() {
+  await requireRole("organizer");
   const hackathon = await getActiveHackathon();
-  const projects = hackathon ? await listProjectViews(hackathon.id) : [];
-  const reviewCases: ReviewCase[] = [];
+  const [projects, reviewCases] = hackathon
+    ? await Promise.all([listProjectViews(hackathon.id), listReviewCases(hackathon.id)])
+    : [[], []];
 
   const ranked = rankProjects(projects, reviewCases);
   const winners = trackWinners(projects, reviewCases);
@@ -28,9 +30,24 @@ export default async function RankingsPage() {
     blocked: r.blocked,
   }));
 
+  const exportRows = ranked.map(({ project, rank, blocked }) => [
+    rank,
+    project.project_name,
+    project.team_name,
+    project.track,
+    project.othersAvg,
+    `${project.judgesDone}/${project.judgesTotal}`,
+    project.scan.review_priority,
+    blocked ? "review-required" : "yes",
+  ]);
+
   return (
     <AppShell role="organizer">
-      <TopNav eyebrow="Final Rankings" title="Rankings" actions={<ExportButton />} />
+      <TopNav
+        eyebrow="Final Rankings"
+        title="Rankings"
+        actions={<ExportButton rows={exportRows} filename={`${hackathon?.slug ?? "openrubric"}-rankings.csv`} />}
+      />
 
       <div className="mx-auto w-full max-w-content px-8 pb-[70px] pt-6">
         {/* winner callouts */}

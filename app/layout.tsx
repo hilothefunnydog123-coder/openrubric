@@ -63,7 +63,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${sans.variable} ${serif.variable} ${mono.variable}`}
     >
-      <body>
+      {/* suppressHydrationWarning: browser extensions (Grammarly, password managers)
+          inject attributes onto <body> before hydration — harmless, but noisy. */}
+      <body suppressHydrationWarning>
         <SessionProvider>
           <DemoProvider>{children}</DemoProvider>
         </SessionProvider>

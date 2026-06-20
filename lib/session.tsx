@@ -71,7 +71,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       email: profile?.email ?? au.email ?? "",
       name: profile?.full_name || metaName || au.email?.split("@")[0] || "You",
       avatarUrl: profile?.avatar_url ?? null,
-      role: profile?.role ?? "judge",
+      role: profile?.role ?? "organizer",
       color: colorForId(au.id),
     });
     setLoading(false);

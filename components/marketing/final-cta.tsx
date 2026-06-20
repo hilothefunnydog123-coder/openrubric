@@ -38,9 +38,9 @@ export function FinalCta() {
           <div className="font-mono text-[12px] text-faint">
             MIT licensed · Self-hostable · Nonprofit
           </div>
-          <div className="flex gap-6 text-[13.5px] text-dim">
-            <Link href="/#product" className="transition-colors hover:text-ink">
-              Product
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-[13.5px] text-dim">
+            <Link href={ROUTES.pricing} className="transition-colors hover:text-ink">
+              Pricing
             </Link>
             <Link href={ROUTES.docs} className="transition-colors hover:text-ink">
               Docs
@@ -53,8 +53,14 @@ export function FinalCta() {
             >
               GitHub
             </a>
-            <Link href={ROUTES.judgeDashboard} className="transition-colors hover:text-ink">
-              Demo
+            <Link href={ROUTES.contact} className="transition-colors hover:text-ink">
+              Contact
+            </Link>
+            <Link href={ROUTES.terms} className="transition-colors hover:text-ink">
+              Terms
+            </Link>
+            <Link href={ROUTES.privacy} className="transition-colors hover:text-ink">
+              Privacy
             </Link>
           </div>
         </div>

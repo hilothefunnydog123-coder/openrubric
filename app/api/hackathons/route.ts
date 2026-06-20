@@ -5,7 +5,6 @@ import {
   getSupabaseServiceClient,
   getSupabaseServerClient,
 } from "@/lib/supabase";
-import { DEMO_HACKATHON } from "@/lib/demo-data";
 
 export const runtime = "nodejs";
 
@@ -13,9 +12,12 @@ const createSchema = z.object({
   name: z.string().min(2, "Name your hackathon"),
   website_url: z.string().optional().default(""),
   devpost_url: z.string().optional().default(""),
+  logo_url: z.string().optional().default(""),
   start_time: z.string().optional().nullable(),
   submission_deadline: z.string().optional().nullable(),
   judging_deadline: z.string().optional().nullable(),
+  timezone: z.string().optional().default(""),
+  judges_per_project: z.coerce.number().int().min(1).max(3).optional().default(1),
   tracks: z.array(z.string().min(1)).default([]),
   criteria: z
     .array(z.object({ name: z.string().min(1), max: z.coerce.number().int().positive() }))
@@ -33,7 +35,7 @@ const toTs = (s?: string | null) => {
 /** GET /api/hackathons — list hackathons (live when Supabase is configured). */
 export async function GET() {
   const service = await getSupabaseServiceClient();
-  if (!service) return NextResponse.json({ hackathons: [DEMO_HACKATHON], demo: true });
+  if (!service) return NextResponse.json({ hackathons: [] });
   const { data, error } = await service
     .from("hackathons")
     .select("id, name, slug, start_time, submission_deadline, judging_deadline, created_at")
@@ -68,20 +70,30 @@ export async function POST(req: Request) {
   const d = parsed.data;
   const slug = `${slugify(d.name) || "hackathon"}-${Math.random().toString(36).slice(2, 7)}`;
 
-  const { data: hk, error } = await service
+  const baseRow = {
+    name: d.name,
+    slug,
+    website_url: d.website_url || null,
+    devpost_url: d.devpost_url || null,
+    start_time: toTs(d.start_time),
+    submission_deadline: toTs(d.submission_deadline),
+    judging_deadline: toTs(d.judging_deadline),
+    created_by: createdBy,
+  };
+  const newCols = {
+    logo_url: d.logo_url || null,
+    timezone: d.timezone || null,
+    judges_per_project: d.judges_per_project ?? 1,
+  };
+  let { data: hk, error } = await service
     .from("hackathons")
-    .insert({
-      name: d.name,
-      slug,
-      website_url: d.website_url || null,
-      devpost_url: d.devpost_url || null,
-      start_time: toTs(d.start_time),
-      submission_deadline: toTs(d.submission_deadline),
-      judging_deadline: toTs(d.judging_deadline),
-      created_by: createdBy,
-    })
+    .insert({ ...baseRow, ...newCols })
     .select("id, slug")
     .single();
+  // logo_url / timezone / judges_per_project are newer — retry without them if unmigrated.
+  if (error && /logo_url|timezone|judges_per_project/.test(error.message)) {
+    ({ data: hk, error } = await service.from("hackathons").insert(baseRow).select("id, slug").single());
+  }
 
   if (error || !hk) {
     return NextResponse.json({ ok: false, error: error?.message || "Insert failed." }, { status: 500 });

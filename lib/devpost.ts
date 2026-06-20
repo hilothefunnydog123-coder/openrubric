@@ -27,6 +27,7 @@ export interface DevpostProject {
   description: string;
   repo_url: string | null;
   live_url: string | null;
+  video_url: string | null;
   devpost_url: string;
   built_with: string[];
   members: { name: string; username: string; profile_url: string }[];
@@ -60,14 +61,39 @@ async function getHtml(url: string, signal?: AbortSignal): Promise<string> {
   return res.text();
 }
 
-/** Real Devpost project image (screenshot) vs. avatars / static logos / placeholders. */
-const REAL_SHOT = /software_photos|software_thumbnail_photos|d112y698adiu2z/i;
+/**
+ * Real Devpost PROJECT image (a screenshot the team uploaded) vs. avatars, the
+ * hackathon's own event logo (`challenge_thumbnails`/`challenge_photos`), or static
+ * placeholders. Only the software_photos buckets are genuine project screenshots.
+ */
+const REAL_SHOT = /software_photos|software_thumbnail_photos/i;
 function isRealShot(src: string): boolean {
   return (
     /^https?:\/\//i.test(src) &&
     REAL_SHOT.test(src) &&
-    !/avatar|gravatar|placeholder|googleusercontent/i.test(src)
+    !/avatar|gravatar|placeholder|googleusercontent|challenge_thumbnail|challenge_photo/i.test(src)
   );
+}
+
+/**
+ * Two URLs for the SAME Devpost photo differ only by size variant
+ * (.../004/699/687/datas/medium.png vs .../original.png vs .../gallery.jpg). Key on the
+ * numeric photo id so the same shot doesn't appear several times.
+ */
+function photoKey(url: string): string {
+  const m = url.match(/\/(?:software_photos|software_thumbnail_photos)\/(\d+\/\d+\/\d+)\//);
+  return m ? m[1] : url;
+}
+function dedupeByPhoto(urls: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const u of urls) {
+    const k = photoKey(u);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(u);
+  }
+  return out;
 }
 
 function parseGalleryPage(html: string, base: string): { name: string; url: string; image: string | null }[] {
@@ -119,18 +145,27 @@ function fullSize(url: string): string {
 
 /**
  * Detail-page screenshot extraction. Only accepts real Devpost project images (the
- * software_photos CDN) — never avatars/logos. Note Devpost lazy-loads the detail
- * gallery, so this often finds nothing; the gallery TILE image is the reliable source.
+ * software_photos CDN) — never avatars/logos.
+ *
+ * Devpost wraps each gallery screenshot in `<a data-lightbox href=".../datas/original.PNG">`
+ * — the FULL-SIZE image, always present in static HTML. The visible <img> inside is a
+ * lazy "gallery.jpg" placeholder, so we read the anchor href first (these reliably load),
+ * then fall back to any real <img> src.
  */
 function extractScreenshots($: cheerio.CheerioAPI): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
   const consider = (raw?: string) => {
-    const src = fullSize((raw || "").trim());
+    let src = (raw || "").trim();
+    if (src.startsWith("//")) src = `https:${src}`;
+    src = fullSize(src);
     if (!isRealShot(src) || seen.has(src) || out.length >= 8) return;
     seen.add(src);
     out.push(src);
   };
+  // 1) The real full-size screenshots — Devpost's lightbox anchors.
+  $("a[data-lightbox][href]").each((_, el) => consider($(el).attr("href")));
+  // 2) Fallback — any <img> that points at a genuine software photo.
   $("img").each((_, el) => {
     const $el = $(el);
     const srcset = $el.attr("srcset") || $el.attr("data-srcset");
@@ -145,6 +180,78 @@ function extractScreenshots($: cheerio.CheerioAPI): string[] {
   return out;
 }
 
+/** Pull a clean, embeddable video URL (Vimeo / YouTube) from the detail page. */
+function extractVideo($: cheerio.CheerioAPI): string | null {
+  let found: string | null = null;
+  $("iframe[src], iframe[data-src]").each((_, el) => {
+    if (found) return;
+    let src = ($(el).attr("src") || $(el).attr("data-src") || "").trim();
+    if (src.startsWith("//")) src = `https:${src}`;
+    const vimeo = src.match(/player\.vimeo\.com\/video\/(\d+)/i) || src.match(/vimeo\.com\/(\d+)/i);
+    if (vimeo) {
+      found = `https://player.vimeo.com/video/${vimeo[1]}`;
+      return;
+    }
+    const yt = src.match(/(?:youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/watch\?v=)([\w-]{6,})/i);
+    if (yt) found = `https://www.youtube.com/embed/${yt[1]}`;
+  });
+  return found;
+}
+
+/**
+ * The full Devpost write-up (Inspiration / What it does / How we built it / …). Lives in
+ * #app-details as <h2> headings + paragraphs/lists. Serialized to readable plain text so
+ * it feeds the AI summary AND shows to judges. Skips the embedded gallery/video nodes.
+ */
+function extractFullDescription($: cheerio.CheerioAPI): string {
+  const original = $("#app-details").first();
+  if (!original.length) return "";
+  // Work on a clone with the image gallery / figures / embeds removed, so figcaptions
+  // like "Logo" or "Demo screenshot" don't pollute the write-up.
+  const root = original.clone();
+  root.find("#gallery, figure, figcaption, a[data-lightbox], iframe, script, style, .video-container").remove();
+  // Devpost appends page metadata after the write-up ("Try it out" links, "Submitted to",
+  // "Created by", login prompts). Stop at the first such marker — it isn't write-up content.
+  const FOOTER = /^(submitted to|created by|try it out|log ?in or sign ?up|sign up for devpost|share this project)\b/i;
+  const parts: string[] = [];
+  let stop = false;
+  let prev = "";
+  root.find("h1, h2, h3, h4, p, li").each((_, el) => {
+    if (stop) return;
+    // Skip blocks nested inside a list item — Devpost wraps each bullet's text in a <p>,
+    // so find() would otherwise emit the same content as both an <li> and a <p>.
+    if ($(el).parents("li").length > 0) return;
+    const tag = (el as { tagName?: string }).tagName?.toLowerCase() || "";
+    const text = $(el).text().replace(/\s+/g, " ").trim();
+    if (!text || text.length < 2 || text === prev) return; // drop empties + immediate repeats
+    if (FOOTER.test(text)) {
+      stop = true;
+      return;
+    }
+    prev = text;
+    if (tag === "li") parts.push(`• ${text}`);
+    else if (tag.startsWith("h")) parts.push(`\n${text}`);
+    else parts.push(text);
+  });
+  const full = parts.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  // Generous cap, but never cut mid-word: back off to the last sentence/paragraph break.
+  const LIMIT = 16000;
+  if (full.length <= LIMIT) return full;
+  let cut = full.slice(0, LIMIT);
+  const boundary = Math.max(
+    cut.lastIndexOf("\n"),
+    cut.lastIndexOf(". "),
+    cut.lastIndexOf("! "),
+    cut.lastIndexOf("? "),
+  );
+  if (boundary > LIMIT * 0.6) cut = cut.slice(0, boundary + 1);
+  else {
+    const sp = cut.lastIndexOf(" ");
+    if (sp > 0) cut = cut.slice(0, sp);
+  }
+  return cut.trim() + "…";
+}
+
 function parseProject(html: string, url: string): DevpostProject {
   const $ = cheerio.load(html);
 
@@ -154,10 +261,19 @@ function parseProject(html: string, url: string): DevpostProject {
     $("h1").first().text().trim() ||
     "Untitled";
 
-  const description =
+  const tagline =
     $("meta[name='description']").attr("content")?.trim() ||
     $(".software-entry-tagline, #software-header .large").first().text().trim() ||
     "";
+  // Prefer the full write-up; fall back to the short tagline when there isn't one.
+  const fullDescription = extractFullDescription($);
+  const description = fullDescription || tagline;
+  const video_url = extractVideo($);
+
+  // The project's banner / gallery-tile image (the nice logo card shown in the Devpost
+  // gallery). Devpost exposes it as og:image — a `software_thumbnail_photos/.../medium.*`
+  // URL that loads as-is. NOTE: never run fullSize() on it (its large variant 403s).
+  const heroBanner = ($("meta[property='og:image']").attr("content") || "").trim();
 
   // SELECTORS — team member profile links.
   const members: DevpostProject["members"] = [];
@@ -178,16 +294,41 @@ function parseProject(html: string, url: string): DevpostProject {
     members.push({ name, username, profile_url: href });
   });
 
-  // SELECTORS — external links ("Try it out" / sidebar). Classify repo vs live.
+  // SELECTORS — external links ("Try it out" / repo). These live in the SIDEBAR app-links,
+  // NOT the write-up body: #app-details anchors are mostly lightbox image URLs (the project
+  // screenshots), which must never be mistaken for the live demo. So we read app-links only
+  // for the live URL, and fall back to the body only to find a GitHub repo.
   let repo_url: string | null = null;
   let live_url: string | null = null;
-  const linkEls = $("ul.app-links a, nav.app-links a, .app-links a, #app-details a[href^='http']");
-  linkEls.each((_, el) => {
-    const href = $(el).attr("href") || "";
+
+  // A Devpost CDN image / asset, never a real demo link.
+  const isAssetLink = (u: string) =>
+    /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|mp4|mov)(\?|$)/i.test(u) ||
+    /software_photos|software_thumbnail_photos|challenge_photos|challenge_thumbnails|\/datas\//i.test(u);
+  // Social / chat / video hosts aren't the "live demo" either.
+  const isNonDemoHost = (u: string) =>
+    /(discord\.(gg|com)|t\.me|slack\.com|(twitter|x)\.com|instagram\.com|facebook\.com|linkedin\.com|youtube\.com|youtu\.be|vimeo\.com|devpost\.com)/i.test(u);
+
+  $("ul.app-links a, nav.app-links a, .app-links a").each((_, el) => {
+    const href = ($(el).attr("href") || "").trim();
     if (!/^https?:\/\//i.test(href)) return;
-    if (/github\.com/i.test(href) && !repo_url) repo_url = href;
-    else if (!/devpost\.com/i.test(href) && !live_url) live_url = href;
+    if (/github\.com/i.test(href)) {
+      if (!repo_url) repo_url = href;
+      return;
+    }
+    if (isNonDemoHost(href) || isAssetLink(href)) return;
+    if (!live_url) live_url = href; // the real "Try it out" link (e.g. a .vercel.app)
   });
+
+  // Repo can also be linked from the write-up body when the sidebar omits it.
+  if (!repo_url) {
+    $("#app-details a[href*='github.com']").each((_, el) => {
+      const href = ($(el).attr("href") || "").trim();
+      if (/^https?:\/\//i.test(href) && /github\.com/i.test(href) && !/\/(blob|raw|releases|issues)\//i.test(href) && !repo_url) {
+        repo_url = href;
+      }
+    });
+  }
 
   // SELECTORS — "Built With" tech tags.
   const built_with: string[] = [];
@@ -196,7 +337,12 @@ function parseProject(html: string, url: string): DevpostProject {
     if (t) built_with.push(t);
   });
 
-  const screenshots = extractScreenshots($);
+  // Lead with the banner/tile (the hero shown at the top of the judging panel), then the
+  // detail-page screenshots. Banner kept raw — fullSize() would 403 it.
+  const shots = extractScreenshots($);
+  const screenshots = isRealShot(heroBanner)
+    ? [heroBanner, ...shots.filter((s) => s !== heroBanner)].slice(0, 8)
+    : shots;
 
   return {
     project_name,
@@ -204,6 +350,7 @@ function parseProject(html: string, url: string): DevpostProject {
     description,
     repo_url,
     live_url,
+    video_url,
     devpost_url: url,
     built_with,
     members,
@@ -294,7 +441,8 @@ async function enrichScreenshotsViaApify(projects: DevpostProject[], base: strin
     for (const p of projects) {
       if (p.screenshots.length > 0) continue;
       const img = byUrl.get(norm(p.devpost_url));
-      if (img) p.screenshots = [fullSize(img)];
+      // Keep the tile thumbnail AS-IS — its full-size variant 403s on Devpost's CDN.
+      if (img) p.screenshots = [img];
     }
   } catch {
     /* Apify unavailable/timed out — keep whatever the built-in scrape found */
@@ -340,12 +488,13 @@ export async function scrapeDevpost(
       const html = await getHtml(t.url, ctrl.signal);
       const p = parseProject(html, t.url);
       if (!p.project_name || p.project_name === "Untitled") p.project_name = t.name;
-      // The gallery tile thumbnail is the project's primary screenshot (reliably in
-      // static HTML). Lead with it, then add any detail-page images we managed to find.
-      const merged: string[] = [];
-      if (t.image) merged.push(fullSize(t.image));
-      for (const s of p.screenshots) if (!merged.includes(s)) merged.push(s);
-      p.screenshots = merged.slice(0, 8);
+      // Lead with the detail page's real full-size screenshots (lightbox anchors). Only
+      // if the detail page yielded nothing do we fall back to the gallery tile thumbnail
+      // — kept AS-IS, since its full-size variant 403s on Devpost's CDN.
+      const merged: string[] = [...p.screenshots];
+      if (merged.length === 0 && t.image) merged.push(t.image);
+      // Collapse size-variant duplicates of the same photo (keeps the hero at [0]).
+      p.screenshots = dedupeByPhoto(merged).slice(0, 8);
       return p;
     });
 

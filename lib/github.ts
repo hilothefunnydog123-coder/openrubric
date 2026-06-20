@@ -13,7 +13,6 @@
  *   Forbidden: cheater, fraud, guilty, stolen, plagiarized, caught.
  */
 
-import { DEMO_PROJECTS } from "./demo-data";
 import type { GithubScan, ReviewPriority, TimelineEvent, TimelineFlag } from "./types";
 
 export const FORBIDDEN_LANGUAGE = ["cheater", "fraud", "guilty", "stolen", "plagiarized", "caught"];
@@ -45,6 +44,33 @@ export function parseRepoUrl(url: string): { owner: string; repo: string } | nul
   const parts = cleaned.split("/").filter(Boolean);
   if (parts.length < 2) return null;
   return { owner: parts[0], repo: parts[1] };
+}
+
+/**
+ * Fetch a repo's README as raw markdown so judges see the real README text and the AI
+ * summary can actually read it. Returns null when there's no token, the URL can't be
+ * parsed, or the repo has no README. Never throws — README is a bonus, not a blocker.
+ */
+export async function fetchReadme(repoUrl: string, maxChars = 12000): Promise<string | null> {
+  const token = process.env.GITHUB_TOKEN;
+  const parsed = parseRepoUrl(repoUrl);
+  if (!token || !parsed) return null;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/readme`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // raw media type returns the README file content directly (not base64-wrapped).
+        Accept: "application/vnd.github.raw+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text.trim() ? text.slice(0, maxChars) : null;
+  } catch {
+    return null;
+  }
 }
 
 export const PRIORITY_LABEL: Record<ReviewPriority, string> = {
@@ -86,14 +112,15 @@ export function deriveReviewPriority(m: ScanMetrics): ReviewPriority {
  * Careful, non-accusatory summary for a scan. Always framed as a question for the
  * organizer and always ends on "a signal, not a verdict".
  */
-export function reviewNote(m: ScanMetrics, priority: ReviewPriority): string {
+export function reviewNote(m: ScanMetrics, priority: ReviewPriority, grace = DEFAULT_GRACE_MINUTES): string {
   let note: string;
+  const latePhrase = grace > 0 ? `more than ${grace} minutes past the submission deadline` : "after the submission deadline";
   if (priority === "clean") {
-    note = `All ${m.totalCommits} commits fall inside the event window. Nothing here needs review.`;
+    note = `All ${m.totalCommits} commits fall inside the event window (a ${grace}-minute grace period applies). Nothing here needs review.`;
   } else if (m.preEventCommits > 20) {
     note = `GitHub timeline shows ${m.preEventCommits} commits before the hackathon start. This does not prove a rule violation, but judges may want to ask which parts were built during the event.`;
   } else if (m.postDeadlineCommits > 0) {
-    note = `GitHub timeline shows ${m.postDeadlineCommits} commits after the submission deadline. This does not prove a rule violation, but judges may want to ask what changed after submission.`;
+    note = `GitHub timeline shows ${m.postDeadlineCommits} commits ${latePhrase}. This does not prove a rule violation, but judges may want to ask what changed after submission.`;
   } else if (m.preEventCommits > 0 || m.repoCreatedBeforeEvent) {
     note = `Some activity predates the event window. This is often a pre-created repo — judges may simply want to confirm which parts were built during the event.`;
   } else if (m.totalCommits === 0) {
@@ -107,8 +134,25 @@ export function reviewNote(m: ScanMetrics, priority: ReviewPriority): string {
 
 /** GitHub commit shape (subset we use). */
 interface GhCommit {
-  commit: { author: { date: string } | null };
+  commit: { author: { date: string } | null; committer: { date: string } | null };
   author: { login: string } | null;
+}
+
+/** Format an instant in an IANA timezone — e.g. "May 23, 7:01 PM PDT". Falls back to UTC. */
+function fmtInZone(ms: number, timeZone: string | null): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZoneName: "short",
+  };
+  try {
+    return new Intl.DateTimeFormat("en-US", { timeZone: timeZone || "UTC", ...opts }).format(new Date(ms));
+  } catch {
+    return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", ...opts }).format(new Date(ms));
+  }
 }
 
 async function gh<T>(path: string, token: string): Promise<T> {
@@ -125,12 +169,25 @@ async function gh<T>(path: string, token: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Default lateness/earliness grace, in minutes. Override with GITHUB_GRACE_MINUTES. */
+export const DEFAULT_GRACE_MINUTES = 30;
+
+export function graceMinutes(override?: number): number {
+  if (typeof override === "number" && override >= 0) return override;
+  const env = Number(process.env.GITHUB_GRACE_MINUTES);
+  return Number.isFinite(env) && env >= 0 ? env : DEFAULT_GRACE_MINUTES;
+}
+
 export interface ScanInput {
   submissionId: string;
   repoUrl: string;
-  eventStart: string; // ISO
-  submissionDeadline: string; // ISO
+  eventStart: string | null; // ISO; null = no start bound (don't flag early commits)
+  submissionDeadline: string | null; // ISO; null = no deadline bound (don't flag late commits)
   listedHandles?: string[];
+  /** IANA timezone — commit times in the timeline render in this zone. */
+  timezone?: string | null;
+  /** Grace window in minutes for early/late commits. Defaults to GITHUB_GRACE_MINUTES (30). */
+  graceMinutes?: number;
 }
 
 /**
@@ -147,8 +204,17 @@ export async function scanRepository(input: ScanInput): Promise<GithubScan> {
   }
 
   try {
-    const start = new Date(input.eventStart).getTime();
-    const deadline = new Date(input.submissionDeadline).getTime();
+    // Absolute instants, so the comparison is timezone-correct regardless of where the
+    // commit, the organizer, or the server sit. A grace window forgives commits that land
+    // a little early or a little late (default 30 min) — being a minute over isn't a flag.
+    const grace = graceMinutes(input.graceMinutes) * 60_000;
+    const tz = input.timezone ?? null;
+    // Open-ended when a bound isn't set, so a hackathon without times doesn't flag
+    // every commit as out-of-window.
+    const start = input.eventStart ? new Date(input.eventStart).getTime() - grace : Number.NEGATIVE_INFINITY;
+    const deadline = input.submissionDeadline
+      ? new Date(input.submissionDeadline).getTime() + grace
+      : Number.POSITIVE_INFINITY;
 
     const [repo, commits, contributors, languages] = await Promise.all([
       gh<{ created_at: string }>(`/repos/${parsed.owner}/${parsed.repo}`, token),
@@ -166,8 +232,10 @@ export async function scanRepository(input: ScanInput): Promise<GithubScan> {
             .sort((a, b) => b.pct - a.pct)
         : [];
 
+    // Prefer the committer date (when the commit actually landed in the repo) over the
+    // author date (which a rebase/amend can backdate) — the better signal for timeline.
     const dates = commits
-      .map((c) => c.commit.author?.date)
+      .map((c) => c.commit.committer?.date ?? c.commit.author?.date)
       .filter((d): d is string => Boolean(d))
       .map((d) => new Date(d).getTime())
       .sort((a, b) => a - b);
@@ -195,18 +263,19 @@ export async function scanRepository(input: ScanInput): Promise<GithubScan> {
 
     const priority = deriveReviewPriority(metrics);
     const fmt = (ms: number) => new Date(ms).toISOString();
+    const repoCreatedMs = new Date(repo.created_at).getTime();
 
     const timeline: TimelineEvent[] = [
       {
         label: "Repo created",
-        meta: repoCreatedBeforeEvent ? "before the event window" : "within the event window",
+        meta: `${fmtInZone(repoCreatedMs, tz)} · ${repoCreatedBeforeEvent ? "before the event window" : "within the event window"}`,
         tone: repoCreatedBeforeEvent ? "needs" : "clean",
       },
       dates.length > 0
-        ? { label: "First commit", meta: firstCommitInWindow ? "within window" : "before event start", tone: firstCommitInWindow ? "clean" : "needs" }
+        ? { label: "First commit", meta: `${fmtInZone(dates[0], tz)} · ${firstCommitInWindow ? "within window" : "before event start"}`, tone: firstCommitInWindow ? "clean" : "needs" }
         : { label: "No commits found", meta: "empty history", tone: "needs" },
       dates.length > 0
-        ? { label: "Last commit", meta: postDeadlineCommits > 0 ? "after deadline" : "before deadline", tone: postDeadlineCommits > 0 ? "needs" : "clean" }
+        ? { label: "Last commit", meta: `${fmtInZone(dates[dates.length - 1], tz)} · ${postDeadlineCommits > 0 ? "after deadline" : "before deadline"}`, tone: postDeadlineCommits > 0 ? "needs" : "clean" }
         : { label: "—", meta: "", tone: "needs" },
     ];
 
@@ -231,7 +300,7 @@ export async function scanRepository(input: ScanInput): Promise<GithubScan> {
       timeline_json: timeline,
       flags_json: flags,
       review_priority: priority,
-      summary: reviewNote(metrics, priority),
+      summary: reviewNote(metrics, priority, graceMinutes(input.graceMinutes)),
       languages_json,
       created_at: new Date().toISOString(),
     };
@@ -241,10 +310,8 @@ export async function scanRepository(input: ScanInput): Promise<GithubScan> {
   }
 }
 
-/** Return the demo scan for a known submission, or a clean placeholder. */
+/** A neutral, unscanned placeholder — used when no repo is connected or a scan fails. */
 export function demoScanFor(submissionId: string): GithubScan {
-  const project = DEMO_PROJECTS.find((p) => p.id === submissionId);
-  if (project) return project.scan;
   return {
     id: `scan-${submissionId}`,
     submission_id: submissionId,

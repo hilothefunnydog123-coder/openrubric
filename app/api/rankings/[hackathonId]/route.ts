@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
-import { DEMO_PROJECTS, DEMO_REVIEW_CASES } from "@/lib/demo-data";
+import { listProjectViews, listReviewCases } from "@/lib/live-data";
 import { rankProjects, suggestedOverallWinner, trackWinners } from "@/lib/scoring";
 
 /** GET /api/rankings/[hackathonId] — overall + per-track standings with eligibility. */
 export async function GET(_req: Request, { params }: { params: Promise<{ hackathonId: string }> }) {
   const { hackathonId } = await params;
 
-  const ranked = rankProjects(DEMO_PROJECTS, DEMO_REVIEW_CASES);
-  const tracks = trackWinners(DEMO_PROJECTS, DEMO_REVIEW_CASES);
-  const { eligibleWinner, heldBack } = suggestedOverallWinner(DEMO_PROJECTS, DEMO_REVIEW_CASES);
+  const [projects, reviewCases] = await Promise.all([
+    listProjectViews(hackathonId),
+    listReviewCases(hackathonId),
+  ]);
+
+  const ranked = rankProjects(projects, reviewCases);
+  const tracks = trackWinners(projects, reviewCases);
+  const { eligibleWinner, heldBack } = suggestedOverallWinner(projects, reviewCases);
 
   return NextResponse.json({
     hackathon_id: hackathonId,

@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/lib/session";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { colorForId, initials } from "@/lib/utils";
-import { CURRENT_JUDGE } from "@/lib/demo-data";
 
 /**
  * Shared judging notes — a live, Google-Docs-style thread for the whole panel.
@@ -77,12 +76,7 @@ export function CollaborativeNotes({ submissionId }: { submissionId: string }) {
     () =>
       user
         ? { id: user.id, name: user.name, color: user.color, avatarUrl: user.avatarUrl }
-        : {
-            id: CURRENT_JUDGE.id,
-            name: CURRENT_JUDGE.full_name,
-            color: colorForId(CURRENT_JUDGE.id),
-            avatarUrl: null,
-          },
+        : { id: "you", name: "You", color: colorForId("you"), avatarUrl: null },
     [user],
   );
 
@@ -335,16 +329,17 @@ export function CollaborativeNotes({ submissionId }: { submissionId: string }) {
               broadcastTyping();
             }}
             onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              // Enter posts; Shift+Enter (or ⌘/Ctrl+Enter) inserts a newline.
+              if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
                 e.preventDefault();
                 void post();
               }
             }}
-            placeholder="Add to the shared notes — everyone on the panel sees this live. ⌘↵ to post."
+            placeholder="Add to the shared notes — everyone on the panel sees this live. Enter to post."
             className="min-h-[90px]"
           />
           <div className="mt-2 flex items-center justify-end gap-3">
-            <span className="font-mono text-[10.5px] text-faint">⌘↵ to post</span>
+            <span className="font-mono text-[10.5px] text-faint">↵ to post · ⇧↵ newline</span>
             <button
               type="button"
               onClick={() => void post()}

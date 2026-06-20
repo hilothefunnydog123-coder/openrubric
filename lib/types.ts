@@ -40,11 +40,15 @@ export interface Hackathon {
   slug: string;
   website_url: string | null;
   devpost_url: string | null;
+  logo_url?: string | null;
   rules_text: string | null;
   rubric_text: string | null;
   start_time: string;
   submission_deadline: string;
   judging_deadline: string;
+  timezone?: string | null;
+  /** How many judges score each project; their totals are averaged into the final score. */
+  judges_per_project?: number;
   created_by: string;
   created_at: string;
 }
@@ -168,6 +172,8 @@ export interface GithubScan {
   summary: string;
   /** GitHub language breakdown for the repo, sorted by share. */
   languages_json?: { name: string; pct: number }[];
+  /** The repo's README, as raw markdown, so judges see the real README text. */
+  readme_md?: string | null;
   created_at: string;
 }
 

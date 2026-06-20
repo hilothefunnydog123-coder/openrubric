@@ -5,6 +5,7 @@ import { ROUTES, SITE } from "@/lib/constants";
 
 const NAV_LINKS = [
   { label: "Product", href: "/#product" },
+  { label: "Pricing", href: ROUTES.pricing },
   { label: "Docs", href: ROUTES.docs },
   { label: "GitHub", href: SITE.githubUrl, external: true },
   { label: "Demo", href: ROUTES.judgeDashboard },

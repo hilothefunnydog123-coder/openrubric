@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { reviewResolveSchema } from "@/lib/validators";
-import { DEMO_REVIEW_CASES } from "@/lib/demo-data";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, getSupabaseServiceClient } from "@/lib/supabase";
+
+export const runtime = "nodejs";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * POST /api/review-cases/[id]/resolve — record an organizer's decision on a review
@@ -16,19 +19,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const existing = DEMO_REVIEW_CASES.find((rc) => rc.id === id);
-  if (!existing && isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() || !UUID.test(id)) {
     return NextResponse.json({ error: "Review case not found" }, { status: 404 });
   }
+  const service = await getSupabaseServiceClient();
+  if (!service) {
+    return NextResponse.json({ error: "Server not configured." }, { status: 503 });
+  }
 
-  return NextResponse.json({
-    review_case: {
-      ...(existing ?? { id, submission_id: "", priority: "needs" }),
+  const { data, error } = await service
+    .from("review_cases")
+    .update({
       status: parsed.data.status,
-      organizer_notes: parsed.data.organizer_notes,
-      final_decision: parsed.data.final_decision,
-      updated_at: new Date().toISOString(),
-    },
-    demo: !isSupabaseConfigured(),
-  });
+      organizer_notes: parsed.data.organizer_notes || null,
+      final_decision: parsed.data.final_decision || null,
+    })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Review case not found" }, { status: 404 });
+
+  return NextResponse.json({ review_case: data });
 }

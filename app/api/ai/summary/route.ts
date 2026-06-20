@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generateSummary, isAiConfigured } from "@/lib/ai";
-import { getProject } from "@/lib/demo-data";
+import { getProjectView } from "@/lib/live-data";
 import { rateLimit, clientKey, tooManyRequests } from "@/lib/rate-limit";
 
 const schema = z.object({
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const project = getProject(parsed.data.submission_id);
+  const project = await getProjectView(parsed.data.submission_id);
   const summary = await generateSummary({
     submissionId: parsed.data.submission_id,
     projectName: parsed.data.project_name ?? project?.project_name ?? "Project",

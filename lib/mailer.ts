@@ -125,6 +125,56 @@ export async function sendVerificationCodeEmail(
   }
 }
 
+export async function sendOrganizerInviteEmail(
+  to: string,
+  opts: { acceptLink: string; hackathonName?: string; inviterName?: string },
+): Promise<SendResult> {
+  const transport = getTransport();
+  if (!transport) return { sent: false, demo: true };
+
+  const event = opts.hackathonName || "a hackathon";
+  const inviter = opts.inviterName ? `${opts.inviterName} ` : "";
+  try {
+    const info = await transport.sendMail({
+      from: fromAddress(),
+      to,
+      subject: `You're invited to co-organize ${event} on ${FROM_NAME}`,
+      text: `${inviter}invited you to co-organize ${event} on ${FROM_NAME}.\n\nAccept and create your account with this email:\n${opts.acceptLink}\n`,
+      html: inviteEmailHtml({
+        acceptLink: opts.acceptLink,
+        heading: "You're invited to co-organize",
+        line: `${opts.inviterName ? `${opts.inviterName} invited you` : "You've been invited"} to co-organize <strong style="color:#f3f1ec;">${event}</strong>. Accept below and create your account with <em>this</em> email address.`,
+      }),
+      attachments: [logoAttachment],
+    });
+    return { sent: true, demo: false, messageId: info.messageId };
+  } catch (err) {
+    return { sent: false, demo: false, error: err instanceof Error ? err.message : "send failed" };
+  }
+}
+
+/** A plain notification to the host (e.g. "X joined as a co-organizer"). */
+export async function sendHostNotificationEmail(
+  to: string,
+  opts: { subject: string; heading: string; body: string },
+): Promise<SendResult> {
+  const transport = getTransport();
+  if (!transport) return { sent: false, demo: true };
+  try {
+    const info = await transport.sendMail({
+      from: fromAddress(),
+      to,
+      subject: opts.subject,
+      text: `${opts.heading}\n\n${opts.body}\n`,
+      html: notificationEmailHtml(opts.heading, opts.body),
+      attachments: [logoAttachment],
+    });
+    return { sent: true, demo: false, messageId: info.messageId };
+  } catch (err) {
+    return { sent: false, demo: false, error: err instanceof Error ? err.message : "send failed" };
+  }
+}
+
 export async function sendJudgeInviteEmail(
   to: string,
   opts: { acceptLink: string; hackathonName?: string; inviterName?: string },
@@ -168,6 +218,47 @@ function judgeInviteEmailHtml(acceptLink: string, event: string, inviter?: strin
       </td></tr>
       <tr><td style="padding:22px 4px 0;font-size:12px;line-height:1.5;color:#5a5a5a;">
         Didn't expect this? You can ignore it — no account is created until you sign up.
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+}
+
+/** Generic accept-invite email (judge or co-organizer). */
+function inviteEmailHtml(opts: { acceptLink: string; heading: string; line: string }): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#f4f1ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;">
+      <tr><td style="padding:0 0 28px;">${brandHeader()}</td></tr>
+      <tr><td style="background:#17181b;border:1px solid #27292e;border-radius:18px;padding:36px 32px;">
+        <h1 style="margin:0 0 10px;font-size:22px;line-height:1.25;color:#f3f1ec;font-weight:600;letter-spacing:-0.02em;">${opts.heading}</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#a0a09a;">${opts.line}</p>
+        <a href="${opts.acceptLink}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-size:15px;font-weight:600;padding:13px 30px;border-radius:10px;">
+          Accept &amp; sign up &rarr;
+        </a>
+      </td></tr>
+      <tr><td style="padding:22px 4px 0;font-size:12px;line-height:1.5;color:#5a5a5a;">
+        Didn't expect this? You can ignore it — no account is created until you sign up.
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+}
+
+/** Simple notification email to the host (no action button). */
+function notificationEmailHtml(heading: string, body: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#f4f1ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;">
+      <tr><td style="padding:0 0 28px;">${brandHeader()}</td></tr>
+      <tr><td style="background:#17181b;border:1px solid #27292e;border-radius:18px;padding:36px 32px;">
+        <h1 style="margin:0 0 10px;font-size:20px;line-height:1.25;color:#f3f1ec;font-weight:600;letter-spacing:-0.02em;">${heading}</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#a0a09a;">${body}</p>
+      </td></tr>
+      <tr><td style="padding:22px 4px 0;font-size:12px;line-height:1.5;color:#5a5a5a;">
+        You're receiving this because you organize an event on ${FROM_NAME}.
       </td></tr>
     </table>
   </body>
