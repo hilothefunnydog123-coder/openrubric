@@ -4,7 +4,7 @@ export const SITE = {
   name: "OpenRubric",
   tagline: "Open judging infrastructure for fairer hackathons.",
   /** External GitHub repo — override with NEXT_PUBLIC_GITHUB_URL. */
-  githubUrl: process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/openrubric/openrubric",
+  githubUrl: process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/aaditmehtacoder/openrubric",
   /**
    * Where organizers reach the team when their platform isn't Devpost (or an import
    * needs a hand). Override with NEXT_PUBLIC_SUPPORT_EMAIL.
