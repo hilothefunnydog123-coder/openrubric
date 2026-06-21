@@ -14,12 +14,18 @@ const NAV_LINKS = [
 export function MarketingNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-background/85 backdrop-blur-[14px]">
-      {/* Announcement bar */}
+      {/* Alpha notice — the first thing every visitor sees. */}
       <Link
-        href={ROUTES.organize}
-        className="block border-b border-line-soft px-5 py-2.5 text-center font-mono text-[12px] tracking-[0.02em] text-dim transition-colors hover:text-ink"
+        href={ROUTES.feedback}
+        className="flex items-center justify-center gap-2 border-b border-line-soft bg-accent-soft px-5 py-2.5 text-center font-mono text-[12px] tracking-[0.02em] text-dim transition-colors hover:text-ink"
       >
-        Open-source judging infrastructure for hackathons <span className="text-accent">→</span>
+        <span className="rounded-full border border-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent">
+          Alpha
+        </span>
+        <span>
+          OpenRubric is in early alpha — expect bugs. Report an issue{" "}
+          <span className="text-accent">→</span>
+        </span>
       </Link>
 
       {/* Nav */}
