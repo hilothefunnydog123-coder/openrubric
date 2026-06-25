@@ -1,5 +1,6 @@
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { ProfileMenu } from "@/components/app/profile-menu";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 
 /** Sticky, blurred page header used across dashboard screens. */
 export function TopNav({
@@ -19,6 +20,7 @@ export function TopNav({
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
         {actions}
+        <ThemeToggle variant="icon" />
         <ProfileMenu />
       </div>
     </div>

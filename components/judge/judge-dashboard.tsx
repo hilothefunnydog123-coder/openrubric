@@ -6,6 +6,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { ProfileMenu } from "@/components/app/profile-menu";
 import { ProjectSearchBar, type JudgeFilter } from "./project-search-bar";
 import { ProjectCard } from "./project-card";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { ManualSubmissionForm } from "@/components/organizer/manual-submission-form";
 import { useDemo } from "@/components/app/demo-store";
 import { DEFAULT_CRITERIA } from "@/lib/demo-data";
@@ -76,7 +77,10 @@ export function JudgeDashboard({
         <div className="mx-auto w-full max-w-content px-8 pt-[34px]">
           <div className="mb-3.5 flex items-start justify-between gap-4">
             <Eyebrow>Judging</Eyebrow>
-            <ProfileMenu />
+            <div className="flex items-center gap-2.5">
+              <ThemeToggle variant="icon" />
+              <ProfileMenu />
+            </div>
           </div>
           <h1 className="mb-1.5 text-[30px] font-semibold tracking-[-0.025em]">Projects to judge</h1>
           <p className="mb-6 text-[14.5px] text-dim">
