@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Logo, LogoMark } from "@/components/ui/logo";
+import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 
@@ -107,6 +108,10 @@ export function CleanSidebar({
           );
         })}
       </nav>
+
+      <div className="border-t border-line p-3">
+        <ThemeToggle />
+      </div>
     </aside>
   );
 }

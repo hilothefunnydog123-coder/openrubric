@@ -6,7 +6,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProfileMenu } from "@/components/app/profile-menu";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { useDemo } from "@/components/app/demo-store";
+import { useTheme } from "@/lib/use-theme";
 import { isComplete, rubricMax, totalScore } from "@/lib/scoring";
 import { cn, prettyUrl } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
@@ -51,6 +53,7 @@ export function GradingWorkspace({
   readme?: string | null;
 }) {
   const { scoresFor, registerCriteria } = useDemo();
+  const { theme } = useTheme();
   const reviewOnly = viewerRole === "organizer";
   const [tab, setTab] = useState("summary");
 
@@ -77,7 +80,7 @@ export function GradingWorkspace({
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas">
+    <div className={cn("flex min-h-screen flex-col bg-canvas", theme === "dark" && "dark")}>
       {/* top bar */}
       <div className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-line bg-background/85 px-6 py-3.5 backdrop-blur-[12px]">
         <div className="flex min-w-0 items-center gap-4">
@@ -128,6 +131,7 @@ export function GradingWorkspace({
               </span>
             </>
           )}
+          <ThemeToggle variant="icon" />
           <ProfileMenu />
         </div>
       </div>

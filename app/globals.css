@@ -30,6 +30,24 @@
     --accent: 37 99 235; /* restrained deep blue */
   }
 
+  /* ---- dark: deep, warm-neutral. Scoped to the dashboard via a `.dark` wrapper
+     (the marketing site stays light). Every token mirrors :root so the whole app
+     recolors from these values alone. ---- */
+  .dark {
+    --background: 14 15 17; /* page canvas — near-black, faintly warm */
+    --surface: 23 24 27; /* cards */
+    --surface-raised: 29 30 34; /* raised panels, inputs, sidebar */
+    --sunken: 39 41 46; /* tracks, active nav, segmented control */
+    --foreground: 237 235 230; /* primary text (warm off-white) + primary buttons */
+    --muted: 167 167 162; /* secondary text */
+    --faint: 126 126 121; /* tertiary / mono metadata */
+    --border: 43 45 50;
+    --border-soft: 34 36 40;
+    --border-softer: 29 30 34;
+    --accent: 109 152 255; /* lifted blue — more legible on dark */
+    color-scheme: dark; /* native scrollbars / date pickers / autofill go dark */
+  }
+
   * {
     @apply border-line;
   }

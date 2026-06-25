@@ -1,4 +1,5 @@
 import { CleanSidebar } from "./clean-sidebar";
+import { DashboardFrame } from "./dashboard-frame";
 import { getActiveHackathon } from "@/lib/live-data";
 
 /** Sidebar + scrollable main column. Used by all dashboard screens (not grading). */
@@ -14,7 +15,7 @@ export async function AppShell({
   const hackathon = await getActiveHackathon();
 
   return (
-    <div className="flex min-h-screen bg-canvas">
+    <DashboardFrame>
       <CleanSidebar
         role={role}
         hasHackathon={Boolean(hackathon)}
@@ -22,6 +23,6 @@ export async function AppShell({
         hackathonLogo={hackathon?.logo_url ?? null}
       />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
-    </div>
+    </DashboardFrame>
   );
 }

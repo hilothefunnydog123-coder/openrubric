@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { useTheme } from "@/lib/use-theme";
 
 export interface BreakdownDatum {
   name: string;
@@ -10,6 +11,10 @@ export interface BreakdownDatum {
 
 /** Horizontal bars of overall average per project. Blocked projects render in the danger tone. */
 export function ScoreBreakdownChart({ data }: { data: BreakdownDatum[] }) {
+  const { theme } = useTheme();
+  // Recharts renders SVG (can't read CSS vars for tick fill), so pick per theme.
+  const tickFill = theme === "dark" ? "#A7A7A2" : "#5A5A5A";
+  const barFill = theme === "dark" ? "#6D98FF" : "#2563EB";
   return (
     <div className="rounded-[14px] border border-line bg-surface p-5">
       <div className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.12em] text-dim">
@@ -25,11 +30,11 @@ export function ScoreBreakdownChart({ data }: { data: BreakdownDatum[] }) {
             width={92}
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 12, fill: "#5A5A5A", fontFamily: "var(--font-sans)" }}
+            tick={{ fontSize: 12, fill: tickFill, fontFamily: "var(--font-sans)" }}
           />
           <Bar dataKey="avg" radius={[0, 5, 5, 0]} isAnimationActive={false}>
             {data.map((d) => (
-              <Cell key={d.name} fill={d.blocked ? "#C0584E" : "#2563EB"} />
+              <Cell key={d.name} fill={d.blocked ? "#C0584E" : barFill} />
             ))}
             <LabelList
               dataKey="avg"
