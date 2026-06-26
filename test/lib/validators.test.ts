@@ -3,6 +3,9 @@ import {
   signInSchema,
   signUpSchema,
   hackathonSchema,
+  scoreRequestSchema,
+  scoreDecisionSchema,
+  scoreVisibilitySchema,
   rubricCriterionSchema,
   rubricSchema,
   judgeInviteSchema,
@@ -147,6 +150,29 @@ describe("scoreAutosaveSchema / scoreSubmitSchema", () => {
       scoreSubmitSchema.safeParse({ submission_id: "s1", judge_id: "j1", scores: { c1: 5 }, is_final: true })
         .success,
     ).toBe(true);
+  });
+});
+
+describe("score request schemas", () => {
+  it("scoreRequestSchema requires both ids", () => {
+    expect(scoreRequestSchema.safeParse({ hackathon_id: "h", submission_id: "s" }).success).toBe(true);
+    expect(scoreRequestSchema.safeParse({ hackathon_id: "h" }).success).toBe(false);
+  });
+  it("scoreDecisionSchema accepts approved/denied and a detail level", () => {
+    expect(scoreDecisionSchema.safeParse({ status: "approved", detail_level: "score_rubric" }).success).toBe(true);
+    expect(scoreDecisionSchema.safeParse({ status: "denied" }).success).toBe(true);
+    expect(scoreDecisionSchema.safeParse({ status: "maybe" }).success).toBe(false);
+    expect(scoreDecisionSchema.safeParse({ status: "approved", detail_level: "everything" }).success).toBe(false);
+  });
+  it("scoreDecisionSchema defaults notify to false", () => {
+    const r = scoreDecisionSchema.safeParse({ status: "approved" });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.notify).toBe(false);
+  });
+  it("scoreVisibilitySchema enforces the enum", () => {
+    expect(scoreVisibilitySchema.safeParse({ score_visibility: "none" }).success).toBe(true);
+    expect(scoreVisibilitySchema.safeParse({ score_visibility: "score_rubric_feedback" }).success).toBe(true);
+    expect(scoreVisibilitySchema.safeParse({ score_visibility: "public" }).success).toBe(false);
   });
 });
 

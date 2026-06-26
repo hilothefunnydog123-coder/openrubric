@@ -1,13 +1,17 @@
 import "server-only";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { SUGGESTED_QUESTIONS } from "@/lib/demo-data";
+import { rubricMax } from "@/lib/scoring";
 import type {
   AiSummary,
+  CollaboratorRole,
   GithubScan,
   Hackathon,
   ProjectView,
   ReviewCase,
   RubricCriterion,
+  ScoreBreakdown,
+  ScoreDetailLevel,
 } from "@/lib/types";
 
 /**
@@ -418,6 +422,194 @@ export async function getHackathonTimezone(submissionId: string): Promise<string
     .maybeSingle();
   if (error) return null;
   return (data?.timezone as string) ?? null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ownership + score-request support (see-your-score feature)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * True if `userId` owns `hackathonId` — either the creator or a row in
+ * hackathon_collaborators. Tolerates the collaborators table not being migrated yet
+ * (falls back to created_by). Used to gate the approval routes.
+ */
+export async function isHackathonOwner(userId: string, hackathonId: string): Promise<boolean> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb || !userId || !hackathonId) return false;
+  const { data: hk } = await sb.from("hackathons").select("created_by").eq("id", hackathonId).maybeSingle();
+  if (hk?.created_by && hk.created_by === userId) return true;
+  const { data, error } = await sb
+    .from("hackathon_collaborators")
+    .select("user_id")
+    .eq("hackathon_id", hackathonId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) return false; // table not migrated yet → created_by is the only owner
+  return Boolean(data);
+}
+
+/** Add an owner/co-owner link. Idempotent; no-ops if the table isn't migrated yet. */
+export async function addHackathonCollaborator(
+  hackathonId: string,
+  userId: string,
+  role: CollaboratorRole,
+): Promise<void> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb || !hackathonId || !userId) return;
+  const { error } = await sb
+    .from("hackathon_collaborators")
+    .upsert({ hackathon_id: hackathonId, user_id: userId, role }, {
+      onConflict: "hackathon_id,user_id",
+      ignoreDuplicates: true,
+    });
+  if (error) {
+    // table not migrated yet — ownership still resolves via created_by. Don't throw.
+  }
+}
+
+/** Emails of everyone who can approve a request (creator + co-owners), de-duplicated. */
+export async function listOwnerEmailsForHackathon(hackathonId: string): Promise<string[]> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb) return [];
+  const emails = new Set<string>();
+  const { data: hk } = await sb.from("hackathons").select("created_by").eq("id", hackathonId).maybeSingle();
+  if (hk?.created_by) {
+    const { data: owner } = await sb.from("profiles").select("email").eq("id", hk.created_by).maybeSingle();
+    if (owner?.email) emails.add(owner.email);
+  }
+  const { data: collabs, error } = await sb
+    .from("hackathon_collaborators")
+    .select("user_id")
+    .eq("hackathon_id", hackathonId);
+  if (!error && collabs?.length) {
+    const ids = collabs.map((c: any) => c.user_id);
+    const { data: profs } = await sb.from("profiles").select("email").in("id", ids);
+    for (const p of (profs ?? []) as { email: string }[]) if (p.email) emails.add(p.email);
+  }
+  return [...emails];
+}
+
+/** Search hackathons by name for the participant picker. */
+export async function searchHackathonsByName(
+  q: string,
+): Promise<{ id: string; name: string; slug: string }[]> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb || !q.trim()) return [];
+  const { data } = await sb
+    .from("hackathons")
+    .select("id, name, slug")
+    .ilike("name", `%${q.trim()}%`)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  return (data ?? []).map((h: any) => ({ id: h.id, name: h.name, slug: h.slug }));
+}
+
+/** Lightweight project list (id + names) for the participant's project picker. */
+export async function listProjectsForHackathon(
+  hackathonId: string,
+): Promise<{ id: string; project_name: string; team_name: string }[]> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("submissions")
+    .select("id, project_name, team_name")
+    .eq("hackathon_id", hackathonId)
+    .order("project_name", { ascending: true });
+  return (data ?? []).map((s: any) => ({
+    id: s.id,
+    project_name: s.project_name,
+    team_name: s.team_name ?? "",
+  }));
+}
+
+/** True if `email` is listed as a participant on `submissionId` (the verified-owner hint). */
+export async function emailIsParticipantOnSubmission(
+  submissionId: string,
+  email: string,
+): Promise<boolean> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb || !email) return false;
+  const { data } = await sb
+    .from("participants")
+    .select("id")
+    .eq("submission_id", submissionId)
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/**
+ * A submission's score, shaped by the granted detail level. Reuses the same
+ * "average of finalized judges' totals" rule as aggregateScores. Never exposes judge
+ * identities — only aggregated numbers and (at the highest level) anonymized comments.
+ */
+export async function getScoreBreakdownForSubmission(
+  submissionId: string,
+  level: ScoreDetailLevel,
+): Promise<ScoreBreakdown | null> {
+  const sb = await getSupabaseServiceClient();
+  if (!sb) return null;
+  const hackathonId = await getHackathonIdForSubmission(submissionId);
+  if (!hackathonId) return null;
+
+  const criteria = await listRubricCriteria(hackathonId);
+  const max = rubricMax(criteria);
+  const { data: hk } = await sb
+    .from("hackathons")
+    .select("judges_per_project")
+    .eq("id", hackathonId)
+    .maybeSingle();
+  const judgesTotal = Math.max(1, Number(hk?.judges_per_project ?? 1));
+
+  const { data: rows } = await sb
+    .from("judge_scores")
+    .select("judge_id, criterion_id, score, is_final, comment")
+    .eq("submission_id", submissionId);
+
+  const byJudge = new Map<
+    string,
+    { sum: number; allFinal: boolean; perCrit: Map<string, number>; comments: string[] }
+  >();
+  for (const r of (rows ?? []) as {
+    judge_id: string;
+    criterion_id: string;
+    score: number;
+    is_final: boolean;
+    comment: string | null;
+  }[]) {
+    const j = byJudge.get(r.judge_id) ?? {
+      sum: 0,
+      allFinal: true,
+      perCrit: new Map<string, number>(),
+      comments: [] as string[],
+    };
+    j.sum += Number(r.score) || 0;
+    j.allFinal = j.allFinal && Boolean(r.is_final);
+    j.perCrit.set(r.criterion_id, Number(r.score) || 0);
+    if (r.comment && String(r.comment).trim()) j.comments.push(String(r.comment).trim());
+    byJudge.set(r.judge_id, j);
+  }
+
+  const finalJudges = [...byJudge.values()].filter((j) => j.allFinal);
+  const judgesDone = finalJudges.length;
+  const total = judgesDone
+    ? Math.round(finalJudges.reduce((a, j) => a + j.sum, 0) / judgesDone)
+    : 0;
+
+  const breakdown: ScoreBreakdown = { submission_id: submissionId, total, max, judgesDone, judgesTotal };
+
+  if (level === "score_rubric" || level === "score_rubric_feedback") {
+    breakdown.perCriterion = criteria.map((c) => {
+      const vals = finalJudges.map((j) => j.perCrit.get(c.id) ?? 0);
+      const avg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+      return { criterion_id: c.id, name: c.name, avg, max: c.max_points };
+    });
+  }
+  if (level === "score_rubric_feedback") {
+    breakdown.feedback = finalJudges.flatMap((j) => j.comments);
+  }
+  return breakdown;
 }
 
 /**

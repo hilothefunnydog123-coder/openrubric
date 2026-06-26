@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CalendarRange } from "lucide-react";
+import { CalendarRange, Trophy } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { useSession } from "@/lib/session";
 import { ROUTES } from "@/lib/constants";
@@ -54,14 +54,14 @@ export function RoleChoice() {
         Let&apos;s set up your hackathon
       </motion.h1>
       <p className="mb-9 text-center text-[15px] text-dim">
-        Judges join by invitation, you just bring the event.
+        Organize an event, or check the score for a project you submitted.
       </p>
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-        className="w-full max-w-[440px]"
+        className="grid w-full max-w-[760px] gap-4 sm:grid-cols-2"
       >
         <Link
           href={ROUTES.organize}
@@ -76,6 +76,24 @@ export function RoleChoice() {
           </p>
           <span className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent">
             Start organizing
+            <span className="transition-transform group-hover:translate-x-0.5">→</span>
+          </span>
+        </Link>
+
+        <Link
+          href={ROUTES.teamScores}
+          className="group flex h-full flex-col rounded-[18px] border border-line bg-surface p-7 shadow-card transition-all hover:-translate-y-0.5 hover:border-ink"
+        >
+          <span className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-[13px] bg-sunken text-ink transition-colors group-hover:bg-ink group-hover:text-canvas">
+            <Trophy className="h-6 w-6" strokeWidth={1.8} />
+          </span>
+          <h2 className="mb-1.5 text-[19px] font-semibold tracking-[-0.01em]">See your score</h2>
+          <p className="mb-6 flex-1 text-[14px] leading-[1.55] text-dim">
+            Submitted a project? Find your hackathon, pick your project, and request your score
+            from the organizers.
+          </p>
+          <span className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent">
+            Find your score
             <span className="transition-transform group-hover:translate-x-0.5">→</span>
           </span>
         </Link>

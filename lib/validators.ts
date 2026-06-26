@@ -142,6 +142,30 @@ export const scoreSubmitSchema = scoreAutosaveSchema.extend({
   is_final: z.literal(true),
 });
 
+// ── Score requests (participant "see my score" → owner approves) ────────────
+export const scoreDetailLevelSchema = z.enum([
+  "score_only",
+  "score_rubric",
+  "score_rubric_feedback",
+]);
+
+export const scoreVisibilitySchema = z.object({
+  score_visibility: z.enum(["none", "score_only", "score_rubric", "score_rubric_feedback"]),
+});
+
+/** A participant asking to see their project's score. Requester is taken from the session. */
+export const scoreRequestSchema = z.object({
+  hackathon_id: z.string().min(1),
+  submission_id: z.string().min(1),
+});
+
+/** An owner approving or denying a request, choosing how much detail to reveal. */
+export const scoreDecisionSchema = z.object({
+  status: z.enum(["approved", "denied"]),
+  detail_level: scoreDetailLevelSchema.optional(),
+  notify: z.boolean().optional().default(false),
+});
+
 // ── Review cases ──────────────────────────────────────────────────────────
 export const reviewResolveSchema = z.object({
   status: z.enum(["open", "resolved"]).default("resolved"),

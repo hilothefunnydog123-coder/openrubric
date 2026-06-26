@@ -21,6 +21,17 @@ export type ReviewCaseStatus = "open" | "resolved";
 
 export type ImportSource = "devpost" | "csv" | "manual";
 
+/** How much of a project's score a participant sees once their request is approved. */
+export type ScoreDetailLevel = "score_only" | "score_rubric" | "score_rubric_feedback";
+
+/** Per-hackathon default for score sharing. "none" = approval still required, nothing shown by default. */
+export type ScoreVisibility = "none" | ScoreDetailLevel;
+
+export type ScoreRequestStatus = "pending" | "approved" | "denied";
+
+/** A hackathon owner / co-owner (per-hackathon ownership link). */
+export type CollaboratorRole = "owner" | "co_owner";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Core records (1:1 with schema.sql)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,8 +60,47 @@ export interface Hackathon {
   timezone?: string | null;
   /** How many judges score each project; their totals are averaged into the final score. */
   judges_per_project?: number;
+  /** Per-hackathon default for how much score detail an approved participant sees. */
+  score_visibility?: ScoreVisibility;
   created_by: string;
   created_at: string;
+}
+
+/** Per-hackathon ownership row — the creator ("owner") plus accepted co-organizers. */
+export interface HackathonCollaborator {
+  id: string;
+  hackathon_id: string;
+  user_id: string;
+  role: CollaboratorRole;
+  created_at: string;
+}
+
+/** A participant's request to see their own project's score, gated by owner approval. */
+export interface ScoreRequest {
+  id: string;
+  hackathon_id: string;
+  submission_id: string;
+  requester_id: string | null;
+  requester_email: string;
+  status: ScoreRequestStatus;
+  detail_level: ScoreDetailLevel | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** The revealed score for one submission, shaped by the granted detail level. */
+export interface ScoreBreakdown {
+  submission_id: string;
+  total: number;
+  max: number;
+  judgesDone: number;
+  judgesTotal: number;
+  /** Per-criterion averages — included for "score_rubric" and above. */
+  perCriterion?: { criterion_id: string; name: string; avg: number; max: number }[];
+  /** Anonymized judge feedback — included only for "score_rubric_feedback". */
+  feedback?: string[];
 }
 
 export interface Track {

@@ -20,6 +20,7 @@ const ORG_NAV: NavItem[] = [
   { label: "Setup", href: ROUTES.organize },
   { label: "Import", href: ROUTES.organizerImport },
   { label: "Team", href: ROUTES.organizerTeam },
+  { label: "Score requests", href: ROUTES.organizerApprovals },
   { label: "Rankings", href: ROUTES.rankings },
 ];
 

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SimpleHeader } from "@/components/app/simple-header";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
 import { getViewer } from "@/lib/auth";
 import { getProjectViewForEmail } from "@/lib/live-data";
+import { ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "My team" };
 export const dynamic = "force-dynamic";
@@ -93,10 +95,17 @@ export default async function TeamDashboardPage() {
             </div>
 
             <div className="rounded-[14px] border border-line bg-raised p-5">
-              <p className="text-[13px] leading-[1.6] text-dim">
-                Individual judge scores stay private until the organizer publishes results. You&apos;ll
-                see your final placement here once judging closes.
+              <p className="mb-4 text-[13px] leading-[1.6] text-dim">
+                Individual judge scores stay private until the organizer publishes results. You can
+                request your score and the organizers decide how much to share.
               </p>
+              <Link
+                href={ROUTES.teamScores}
+                className="inline-flex items-center gap-1.5 rounded-[9px] bg-ink px-4 py-2.5 text-[13px] font-semibold text-canvas transition-opacity hover:opacity-90"
+              >
+                See your score
+                <span>→</span>
+              </Link>
             </div>
           </div>
         </div>

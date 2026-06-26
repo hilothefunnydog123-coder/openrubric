@@ -412,6 +412,19 @@ cp .env.example .env.local
 3. Put the project URL + anon key in `.env.local`. The app detects them automatically;
    `middleware.ts` keeps the session fresh and the auth forms use real Supabase Auth.
 
+> **Incremental migrations (existing deployments).** A fresh `schema.sql` already
+> includes every table. If you provisioned the database before a feature shipped, run
+> the matching migration in the Supabase SQL editor — DDL can't run through the
+> service-role key, so each is a manual, idempotent (safe to re-run) step:
+>
+> | Migration | Adds | Feature |
+> |---|---|---|
+> | [`supabase/add-score-requests.sql`](supabase/add-score-requests.sql) | `hackathon_collaborators`, `score_requests`, `hackathons.score_visibility` | "See your score" request/approval flow + per-hackathon co-owners |
+> | [`supabase/add-github-readme.sql`](supabase/add-github-readme.sql) | `github_scans.readme_md` | Caches fetched READMEs (display works without it) |
+>
+> Each feature degrades gracefully until its migration is applied (score requests just
+> acknowledge without persisting; ownership falls back to `hackathons.created_by`).
+
 ### Scaling to ~250 participants
 
 - **Use the pooled connection** (Supavisor, port `6543`, transaction mode) to avoid

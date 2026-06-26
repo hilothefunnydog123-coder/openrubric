@@ -54,17 +54,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof body.timezone === "string") update.timezone = body.timezone.trim() || null;
   if (typeof body.judges_per_project === "number")
     update.judges_per_project = Math.min(3, Math.max(1, Math.round(body.judges_per_project)));
+  if (
+    typeof body.score_visibility === "string" &&
+    ["none", "score_only", "score_rubric", "score_rubric_feedback"].includes(body.score_visibility)
+  )
+    update.score_visibility = body.score_visibility;
   if ("start_time" in body) update.start_time = toTs(body.start_time);
   if ("submission_deadline" in body) update.submission_deadline = toTs(body.submission_deadline);
   if ("judging_deadline" in body) update.judging_deadline = toTs(body.judging_deadline);
 
   if (Object.keys(update).length) {
     let { error } = await service.from("hackathons").update(update).eq("id", id);
-    // logo_url / timezone / judges_per_project are newer — retry without them if unmigrated.
-    if (error && /logo_url|timezone|judges_per_project/.test(error.message)) {
+    // logo_url / timezone / judges_per_project / score_visibility are newer — retry without
+    // them if unmigrated.
+    if (error && /logo_url|timezone|judges_per_project|score_visibility/.test(error.message)) {
       delete update.logo_url;
       delete update.timezone;
       delete update.judges_per_project;
+      delete update.score_visibility;
       ({ error } = await service.from("hackathons").update(update).eq("id", id));
     }
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });

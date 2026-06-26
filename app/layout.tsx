@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Geist, Geist_Mono } from "next/font/google";
 import { DemoProvider } from "@/components/app/demo-store";
+import { TranslateWidget } from "@/components/app/translate-widget";
 import { SessionProvider } from "@/lib/session";
 import "./globals.css";
 
@@ -38,10 +39,9 @@ export const metadata: Metadata = {
     template: "%s · OpenRubric",
   },
   description:
-    "OpenRubric is a nonprofit, open-source hackathon judging system. Import Devpost submissions, paste a rubric, invite judges, score projects live, review GitHub commit timelines, and publish track winners transparently.",
+    "OpenRubric is a hackathon judging system. Import Devpost submissions, paste a rubric, invite judges, score projects live, review GitHub commit timelines, and publish track winners transparently.",
   keywords: [
     "hackathon judging",
-    "open source",
     "rubric",
     "Devpost",
     "judging infrastructure",
@@ -72,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SessionProvider>
           <DemoProvider>{children}</DemoProvider>
         </SessionProvider>
+        <TranslateWidget />
       </body>
     </html>
   );

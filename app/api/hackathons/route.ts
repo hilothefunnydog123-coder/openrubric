@@ -45,14 +45,18 @@ const toTs = (s?: string | null) => {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 };
 
-/** GET /api/hackathons — list hackathons (live when Supabase is configured). */
-export async function GET() {
+/** GET /api/hackathons — list hackathons (live when Supabase is configured). `?q=` filters
+ *  by name for the participant "find your hackathon" picker. */
+export async function GET(req: Request) {
+  const q = (new URL(req.url).searchParams.get("q") ?? "").trim();
   const service = await getSupabaseServiceClient();
   if (!service) return NextResponse.json({ hackathons: [] });
-  const { data, error } = await service
+  let query = service
     .from("hackathons")
     .select("id, name, slug, start_time, submission_deadline, judging_deadline, created_at")
     .order("created_at", { ascending: false });
+  if (q) query = query.ilike("name", `%${q}%`).limit(10);
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ hackathons: data, demo: false });
 }
@@ -114,6 +118,15 @@ export async function POST(req: Request) {
 
   if (error || !hk) {
     return NextResponse.json({ ok: false, error: error?.message || "Insert failed." }, { status: 500 });
+  }
+
+  // Record the creator as the hackathon's owner so they (and later co-owners) can
+  // approve score requests. Idempotent; tolerates the table not being migrated yet.
+  if (createdBy) {
+    await service.from("hackathon_collaborators").upsert(
+      { hackathon_id: hk.id, user_id: createdBy, role: "owner" },
+      { onConflict: "hackathon_id,user_id", ignoreDuplicates: true },
+    );
   }
 
   if (d.tracks.length) {

@@ -40,6 +40,14 @@ export async function acceptInvitation(token: string, email?: string | null): Pr
 
   if (profile) {
     await service.from("profiles").update({ role }).eq("id", profile.id);
+    // Co-organizer: link them as a co-owner of this hackathon so they can approve
+    // score requests. Idempotent; tolerates the table not being migrated yet.
+    if (role === "organizer" && invite.hackathon_id) {
+      await service.from("hackathon_collaborators").upsert(
+        { hackathon_id: invite.hackathon_id, user_id: profile.id, role: "co_owner" },
+        { onConflict: "hackathon_id,user_id", ignoreDuplicates: true },
+      );
+    }
     if (role === "judge" && invite.hackathon_id) {
       const { data: subs } = await service
         .from("submissions")
