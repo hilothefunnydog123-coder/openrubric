@@ -22,8 +22,8 @@
     --surface-raised: 251 250 246; /* raised panels, inputs */
     --sunken: 240 237 229; /* progress tracks, active nav, segmented control */
     --foreground: 13 13 13; /* primary text + primary buttons */
-    --muted: 108 106 100; /* secondary text */
-    --faint: 162 156 147; /* tertiary / mono metadata */
+    --muted: 26 26 25; /* secondary text — near-black, no washed-out grey */
+    --faint: 84 82 78; /* tertiary / mono metadata / placeholders */
     --border: 230 226 217;
     --border-soft: 240 237 229;
     --border-softer: 244 241 234;
@@ -39,8 +39,8 @@
     --surface-raised: 29 30 34; /* raised panels, inputs, sidebar */
     --sunken: 39 41 46; /* tracks, active nav, segmented control */
     --foreground: 237 235 230; /* primary text (warm off-white) + primary buttons */
-    --muted: 167 167 162; /* secondary text */
-    --faint: 126 126 121; /* tertiary / mono metadata */
+    --muted: 222 220 215; /* secondary text — bright, no washed-out grey */
+    --faint: 168 168 162; /* tertiary / mono metadata / placeholders */
     --border: 43 45 50;
     --border-soft: 34 36 40;
     --border-softer: 29 30 34;
@@ -135,7 +135,7 @@
 @layer components {
   /* Mono "eyebrow" — the uppercase metadata label used across every screen */
   .eyebrow {
-    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-dim;
+    @apply font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink;
   }
 
   /* Page container presets */

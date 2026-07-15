@@ -15,7 +15,7 @@ export const RANKINGS_CSV_HEADER = [
 
 /**
  * Builds a rankings CSV in the browser from real ranked data and triggers a
- * download — no server round-trip. Rows are computed server-side and passed in.
+ * download, no server round-trip. Rows are computed server-side and passed in.
  */
 export function ExportButton({
   rows,

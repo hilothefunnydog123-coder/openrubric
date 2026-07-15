@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Participant-facing "see your score" flow. Find your hackathon, pick your project, and
- * request your score — the organizers approve or deny and decide how much to share.
+ * request your score, the organizers approve or deny and decide how much to share.
  */
 export default function TeamScoresPage() {
   return (
@@ -19,7 +19,7 @@ export default function TeamScoresPage() {
         <h1 className="mb-2 text-[28px] font-semibold tracking-[-0.025em]">See your score</h1>
         <p className="mb-8 max-w-[58ch] text-[14px] leading-[1.6] text-dim">
           Request your project&apos;s score from the organizers. They review every request and
-          choose how much detail to share — the score, the rubric breakdown, or judge feedback.
+          choose how much detail to share, the score, the rubric breakdown, or judge feedback.
         </p>
         <ScoreRequestFlow />
       </div>

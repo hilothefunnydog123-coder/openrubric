@@ -21,7 +21,7 @@ export default function ContactPage() {
             Talk to us.
           </h1>
           <p className="mb-10 max-w-[60ch] text-[15px] leading-[1.65] text-dim">
-            Questions, a hackathon that isn&apos;t on Devpost, or you want us to run an event for you —
+            Questions, a hackathon that isn&apos;t on Devpost, or you want us to run an event for you -
             reach out any time. We read everything.
           </p>
 
@@ -56,7 +56,7 @@ export default function ContactPage() {
               Suggest a feature
             </h2>
             <p className="mb-6 max-w-[58ch] text-[14px] leading-[1.6] text-dim">
-              OpenRubric is built in the open. Tell us what would make it better for your judging room —
+              OpenRubric is built in the open. Tell us what would make it better for your judging room -
               feature ideas, bugs, or anything else.
             </p>
             <FeedbackForm />

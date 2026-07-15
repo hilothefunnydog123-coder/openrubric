@@ -6,7 +6,7 @@ import { animate, motion, useInView, useReducedMotion } from "framer-motion";
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 /**
- * CountUp — a number that ticks up from 0 when it scrolls into view.
+ * CountUp, a number that ticks up from 0 when it scrolls into view.
  * Renders the final value on the server so SEO / no-JS still sees it.
  */
 export function CountUp({
@@ -46,7 +46,7 @@ export function CountUp({
 }
 
 /**
- * MeterFill — a progress-bar fill that sweeps from 0 to its width when the bar
+ * MeterFill, a progress-bar fill that sweeps from 0 to its width when the bar
  * scrolls into view. Server-renders at full width for no-JS visitors.
  */
 export function MeterFill({

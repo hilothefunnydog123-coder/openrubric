@@ -10,7 +10,7 @@ import { colorForId, initials } from "@/lib/utils";
  *
  * Subscribes to the same `grade:{submissionId}` channel the shared notes track on, so it
  * shows the REAL other judges currently on this project in real time. There are no
- * placeholder names — when nobody else is here, the strip simply doesn't render.
+ * placeholder names, when nobody else is here, the strip simply doesn't render.
  */
 
 interface Viewer {
@@ -67,7 +67,7 @@ export function RealtimeJudgePresence({ submissionId }: { submissionId: string }
           }
         });
     } catch {
-      /* realtime unavailable — presence just won't show */
+      /* realtime unavailable, presence just won't show */
     }
 
     return () => {

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function OrganizePage() {
   await requireRole("organizer");
   // If a hackathon already exists, load it so setup opens pre-filled (edit mode)
-  // instead of a blank form — nothing has to be re-entered.
+  // instead of a blank form, nothing has to be re-entered.
   const hackathon = await getActiveHackathon();
   const existing = hackathon
     ? {

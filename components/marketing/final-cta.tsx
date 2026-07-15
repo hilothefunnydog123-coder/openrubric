@@ -46,10 +46,10 @@ export function FinalCta() {
           <Link href={ROUTES.home} className="text-ink">
             <Logo />
           </Link>
-          <div className="font-mono text-[12px] text-faint">
+          <div className="font-mono text-[12px] font-bold text-ink">
             MIT licensed · Self-hostable · Nonprofit
           </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-[13.5px] text-dim">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-[13.5px] font-semibold text-ink">
             <Link href={ROUTES.pricing} className="link-underline">
               Pricing
             </Link>

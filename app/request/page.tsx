@@ -52,8 +52,8 @@ export default async function RequestPage({
             />
           </h1>
           <Reveal delay={0.3} y={14}>
-            <p className="mb-10 max-w-[52ch] text-[17px] leading-[1.6] text-ink/75">
-              We drafted the email below — fill in the brackets, tweak whatever you like, and
+            <p className="mb-10 max-w-[52ch] text-[17px] font-semibold leading-[1.6] text-ink">
+              We drafted the email below. Fill in the brackets, tweak whatever you like, and
               hit send. It goes straight to the people who run OpenRubric.
             </p>
           </Reveal>

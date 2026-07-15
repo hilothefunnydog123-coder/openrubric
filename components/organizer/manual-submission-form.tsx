@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 type Status = "idle" | "saving" | "saved" | "error";
 
 /**
- * Devpost fallback — add a submission by hand when a project didn't scrape in time.
+ * Devpost fallback, add a submission by hand when a project didn't scrape in time.
  *
  * The minimum is a team name + product name; it's saved straight to the active
  * hackathon and inherits that hackathon's rubric and tracks automatically (the rubric
@@ -87,7 +87,7 @@ export function ManualSubmissionForm({
       }
     } catch {
       setStatus("error");
-      setError("Network error — please try again.");
+      setError("Network error, please try again.");
     }
   }
 
@@ -95,7 +95,7 @@ export function ManualSubmissionForm({
     <form onSubmit={onSubmit} className="rounded-[14px] border border-line bg-surface p-5">
       <div className="mb-1 text-[15px] font-semibold tracking-[-0.01em]">Add a submission manually</div>
       <p className="mb-4 text-[13px] leading-[1.55] text-dim">
-        Didn&apos;t scrape in time? Add it by hand — just the team and product name. It joins this
+        Didn&apos;t scrape in time? Add it by hand, just the team and product name. It joins this
         hackathon with the same rubric and tracks. Links are optional.
       </p>
 
@@ -153,7 +153,7 @@ export function ManualSubmissionForm({
 
       {!hackathonId && (
         <p className="mb-3 text-[13px] text-signal-high">
-          Create your hackathon first — then you can add submissions here.
+          Create your hackathon first, then you can add submissions here.
         </p>
       )}
       {error && <p className="mb-3 text-[13px] text-signal-high">{error}</p>}

@@ -52,8 +52,8 @@ export function HackathonRequestBar() {
                 Reach out
               </button>
             </form>
-            <p className="mt-4 text-[14px] text-ink/60">
-              We&apos;ll draft the email for you — takes about a minute.
+            <p className="mt-4 text-[14px] font-semibold text-ink">
+              We&apos;ll draft the email for you. It takes about a minute.
             </p>
           </div>
         </Reveal>

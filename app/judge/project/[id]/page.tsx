@@ -51,13 +51,13 @@ export default async function GradeProjectPage({
   if (!project) notFound();
   const criteria = await resolveCriteria(id);
 
-  // The repo's real README — prefer the value cached on the scan, otherwise fetch it
+  // The repo's real README, prefer the value cached on the scan, otherwise fetch it
   // live from GitHub so judges always see it even before the scan column is populated.
   const readme =
     project.scan.readme_md ||
     (project.repo_url ? await fetchReadme(project.repo_url) : null);
 
-  // Organizers can review a project but never enter the judge scoring flow — and "back"
+  // Organizers can review a project but never enter the judge scoring flow, and "back"
   // returns them to their own dashboard, not the judge's project list.
   const viewerRole = viewer?.role === "organizer" ? "organizer" : "judge";
   const backHref = viewerRole === "organizer" ? ROUTES.organizerDashboard : ROUTES.judgeDashboard;

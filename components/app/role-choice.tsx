@@ -18,7 +18,7 @@ function timeGreeting(): string {
 
 /**
  * Post-login landing for organizers. The only self-serve path is organizing a
- * hackathon — judges never come through here; they arrive via an invite link and are
+ * hackathon, judges never come through here; they arrive via an invite link and are
  * routed straight to judging (see JudgeWelcome).
  */
 export function RoleChoice() {

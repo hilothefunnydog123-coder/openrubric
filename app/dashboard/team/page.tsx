@@ -24,8 +24,8 @@ export default async function TeamDashboardPage() {
           <div className="rounded-[14px] border border-line bg-surface p-6">
             <p className="max-w-[60ch] text-[14px] leading-[1.6] text-dim">
               We couldn&apos;t find a submission linked to your account
-              {viewer?.email ? ` (${viewer.email})` : ""}. Once an organizer imports your project — or
-              you&apos;re listed as a participant with this email — your submission and judging status
+              {viewer?.email ? ` (${viewer.email})` : ""}. Once an organizer imports your project, or
+              you&apos;re listed as a participant with this email, your submission and judging status
               will appear here.
             </p>
           </div>

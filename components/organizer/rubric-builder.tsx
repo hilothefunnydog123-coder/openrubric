@@ -52,7 +52,7 @@ export function RubricBuilder({
       }));
       onChange(next);
       const total = next.reduce((a, c) => a + c.max, 0);
-      setNote(`Generated ${next.length} criteria (${total} pts) from your image — edit anything below.`);
+      setNote(`Generated ${next.length} criteria (${total} pts) from your image, edit anything below.`);
     } catch {
       setError("Network error reading that image. Try again.");
     } finally {
@@ -94,7 +94,7 @@ export function RubricBuilder({
             {generating ? "Reading your rubric…" : "Generate from a photo"}
           </div>
           <div className="mt-0.5 text-[12px] text-dim">
-            Drag &amp; drop or click — upload a picture of your rubric and we&apos;ll turn it into criteria.
+            Drag &amp; drop or click, upload a picture of your rubric and we&apos;ll turn it into criteria.
           </div>
         </div>
       </button>
@@ -121,7 +121,7 @@ export function RubricBuilder({
       <div className="overflow-hidden rounded-[12px] border border-line">
         {criteria.length === 0 ? (
           <div className="px-4 py-6 text-center text-[13px] text-faint">
-            No criteria yet — add your first below, or generate them from a photo.
+            No criteria yet, add your first below, or generate them from a photo.
           </div>
         ) : (
           criteria.map((c, i) => (

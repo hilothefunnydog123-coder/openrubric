@@ -1,7 +1,7 @@
 /**
  * The Gmail logo. These paths are authored on a 256×193 grid, so the viewBox must
  * be "0 0 256 193" (a 24×24 viewBox would crop it). Paths carry their own fills, so
- * there's no stroke — sizing comes from `className`.
+ * there's no stroke, sizing comes from `className`.
  */
 export function GmailIcon({ className }: { className?: string }) {
   return (

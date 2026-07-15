@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import type { GithubScan } from "@/lib/types";
 
 /**
- * Review signals — framed as questions, never accusations. The closing line is
+ * Review signals, framed as questions, never accusations. The closing line is
  * fixed copy: "This is a signal, not a verdict." (see lib/github language policy).
  */
 export function OriginalityFlagCard({ scan }: { scan: GithubScan }) {

@@ -7,7 +7,7 @@ import { TechIcon } from "@/components/ui/tech-icon";
  * Renders the project's REAL GitHub README in the grading view.
  *
  * The README comes from an untrusted source (any team's repo), so it is rendered as
- * React nodes — never via dangerouslySetInnerHTML — by a tiny markdown subset parser.
+ * React nodes, never via dangerouslySetInnerHTML, by a tiny markdown subset parser.
  * All text reaches the DOM as escaped React children, so there's no XSS surface. We
  * cover the markdown judges actually see (headings, bold, inline code, links, lists,
  * fenced code blocks) and treat everything else as plain text.
@@ -59,7 +59,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
 }
 
 function renderMarkdown(md: string): React.ReactNode[] {
-  // Drop images and HTML comments — neither is useful (or safe) inline here.
+  // Drop images and HTML comments, neither is useful (or safe) inline here.
   const cleaned = md
     .replace(/\r\n/g, "\n")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")

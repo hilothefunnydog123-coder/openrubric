@@ -154,7 +154,7 @@ export function VerifyExperience({ token }: { token?: string }) {
             {status === "verifying" && (
               <Copy
                 title="Verifying your email"
-                body="Hang tight — confirming your secure link."
+                body="Hang tight, confirming your secure link."
                 shimmer
               />
             )}
@@ -324,7 +324,7 @@ function Glyph({ status, reduce, accent }: { status: Status; reduce: boolean; ac
       </svg>
     );
   }
-  // verifying — an envelope that gently breathes
+  // verifying, an envelope that gently breathes
   return (
     <motion.svg
       width="38"

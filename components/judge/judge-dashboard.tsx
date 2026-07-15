@@ -22,13 +22,13 @@ export function JudgeDashboard({
   hackathonId = null,
 }: {
   projects: ProjectView[];
-  /** The hackathon's real rubric criteria — so "Completed" matches what the judge scored. */
+  /** The hackathon's real rubric criteria, so "Completed" matches what the judge scored. */
   criteria?: RubricCriterion[];
   /** Tracks the judge can assign a project to. */
   tracks?: { id: string; name: string }[];
   /** The judge's saved track pick per submission_id. */
   assignmentTracks?: Record<string, string | null>;
-  /** Active hackathon — lets a judge add a missing project (inherits the event rubric). */
+  /** Active hackathon, lets a judge add a missing project (inherits the event rubric). */
   hackathonId?: string | null;
 }) {
   const router = useRouter();
@@ -85,7 +85,7 @@ export function JudgeDashboard({
           <h1 className="mb-1.5 text-[30px] font-semibold tracking-[-0.025em]">Projects to judge</h1>
           <p className="mb-6 text-[14.5px] text-dim">
             {projects.length === 0
-              ? "No projects assigned yet — they'll appear here once the organizer imports them."
+              ? "No projects assigned yet, they'll appear here once the organizer imports them."
               : `Search, open a project, and score it against the rubric. ${projects.length - completed} of ${projects.length} still need your score.`}
           </p>
           <div className="pb-[18px]">
@@ -144,7 +144,7 @@ export function JudgeDashboard({
                     Can&apos;t find the project?
                   </div>
                   <p className="mb-4 text-[13px] leading-[1.55] text-dim">
-                    Add it yourself in a few seconds — just the team and product name. It joins this
+                    Add it yourself in a few seconds, just the team and product name. It joins this
                     event with the same rubric, and you&apos;ll jump straight into scoring.
                   </p>
                   <button

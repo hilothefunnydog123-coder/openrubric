@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const Tabs = TabsPrimitive.Root;
 
-/** Segmented control container — the warm-gray pill from the grading workspace. */
+/** Segmented control container, the warm-gray pill from the grading workspace. */
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>

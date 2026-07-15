@@ -8,7 +8,7 @@ import { ROUTES } from "@/lib/constants";
 export function LandingHero() {
   return (
     <section className="relative overflow-hidden bg-canvas text-ink">
-      {/* pastel aurora field — lavender, sky, and a warm peach, slowly drifting */}
+      {/* pastel aurora field, lavender, sky, and a warm peach, slowly drifting */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[680px]" aria-hidden>
         <div
           className="aurora-a absolute -top-40 left-1/2 h-[560px] w-[860px] -translate-x-1/2 rounded-full"
@@ -34,7 +34,7 @@ export function LandingHero() {
         <div className="bg-grain absolute inset-0 opacity-[0.16] mix-blend-multiply dark:mix-blend-screen dark:opacity-[0.10]" />
       </div>
 
-      {/* hero copy — one clear column: eyebrow, headline, pitch, actions */}
+      {/* hero copy, one clear column: eyebrow, headline, pitch, actions */}
       <div className="container-marketing relative pb-10 pt-[88px]">
         <Reveal y={10}>
           <Eyebrow tone="accent" className="mb-6 tracking-[0.16em]">
@@ -45,8 +45,8 @@ export function LandingHero() {
           <SplitWords text="Judge hackathons with a system everyone can *trust.*" delay={0.1} />
         </h1>
         <Reveal delay={0.45} y={16}>
-          <p className="mt-7 max-w-[56ch] text-[clamp(17px,1.6vw,21px)] leading-[1.55] text-ink/80">
-            OpenRubric is the open-source judging platform for hackathons — import your
+          <p className="mt-7 max-w-[56ch] text-[clamp(17px,1.6vw,21px)] font-semibold leading-[1.55] text-ink">
+            OpenRubric is the open-source judging platform for hackathons. Import your
             submissions, score every project against one shared rubric, and publish winners
             everyone can verify.
           </p>

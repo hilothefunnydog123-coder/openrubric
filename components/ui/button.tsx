@@ -8,14 +8,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Primary — inverts with the theme (dark button on light, light button on dark)
+        // Primary, inverts with the theme (dark button on light, light button on dark)
         default:
           "bg-ink text-canvas hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(0,0,0,0.4)]",
         // White card button with hairline border
         secondary: "bg-surface text-ink border border-line hover:border-ink hover:shadow-card",
         // Transparent with border
         outline: "bg-transparent text-ink border border-line hover:border-ink hover:bg-surface/60",
-        // Restrained blue accent — used sparingly
+        // Restrained blue accent, used sparingly
         accent:
           "bg-accent text-accent-fg hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(93,95,239,0.6)]",
         // Quiet text button

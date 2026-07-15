@@ -14,7 +14,7 @@ const RUBRIC = [
 const POINTS = [
   "Weighted criteria with per-criterion comments",
   "Autosave every few seconds, no lost scores",
-  "Organizer aggregates — judges never overwrite each other",
+  "Organizer aggregates, so judges never overwrite each other",
 ];
 
 export function DarkProductSection({ id }: { id?: string }) {
@@ -32,36 +32,36 @@ export function DarkProductSection({ id }: { id?: string }) {
               <SplitWords text="A rubric-first judging workspace." />
             </h2>
             <Reveal delay={0.2} y={14}>
-              <p className="mb-[18px] max-w-[46ch] text-[17px] leading-[1.6] text-ink/80">
-                Every score is tied to a criterion. Judges grade against the rubric you define —
-                never a vague gut feeling — and each judge keeps their own record.
+              <p className="mb-[18px] max-w-[46ch] text-[17px] font-semibold leading-[1.6] text-ink">
+                Every score is tied to a criterion. Judges grade against the rubric you define,
+                never a vague gut feeling, and each judge keeps their own record.
               </p>
             </Reveal>
             <Stagger delay={0.35} className="mt-6 flex flex-col gap-3.5">
               {POINTS.map((p) => (
-                <StaggerItem key={p} className="flex items-baseline gap-[11px]">
-                  <span className="font-mono text-[13px] text-accent">—</span>
-                  <span className="text-[14.5px] text-ink/85">{p}</span>
+                <StaggerItem key={p} className="flex items-center gap-[11px]">
+                  <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" />
+                  <span className="text-[14.5px] font-semibold text-ink">{p}</span>
                 </StaggerItem>
               ))}
             </Stagger>
           </div>
 
-          {/* dark rubric card — a product preview, fixed dark in both themes.
+          {/* dark rubric card, a product preview, fixed dark in both themes.
               Bars sweep to their score and the total ticks up on scroll-in. */}
           <Reveal delay={0.15}>
             <div className="rounded-[18px] border border-line-dark bg-panel-900 p-6 text-white shadow-lift">
               <div className="mb-5 flex items-center justify-between border-b border-line-darker pb-4">
                 <div>
                   <div className="text-[16px] font-semibold">Lighthouse</div>
-                  <div className="mt-[3px] font-mono text-[11px] text-[#7A7A7A]">
+                  <div className="mt-[3px] font-mono text-[11px] font-bold text-[#D6D6D2]">
                     Rubric · 6 criteria
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-serif text-[34px] leading-none">
                     <CountUp value={87} delay={0.3} />
-                    <span className="text-[20px] text-[#4A4A4A]"> / 100</span>
+                    <span className="text-[20px] text-[#9A9A96]"> / 100</span>
                   </div>
                 </div>
               </div>
@@ -69,10 +69,10 @@ export function DarkProductSection({ id }: { id?: string }) {
                 {RUBRIC.map((r, i) => (
                   <div key={r.name}>
                     <div className="mb-[7px] flex items-center justify-between">
-                      <span className="text-[14px] text-[#E4E4E4]">{r.name}</span>
-                      <span className="font-mono text-[13px] text-[#9A9A9A]">
+                      <span className="text-[14px] font-semibold text-white">{r.name}</span>
+                      <span className="font-mono text-[13px] font-bold text-[#E4E4E4]">
                         {r.score}
-                        <span className="text-[#4A4A4A]"> / {r.max}</span>
+                        <span className="text-[#8A8A86]"> / {r.max}</span>
                       </span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-[3px] bg-[#181818]">

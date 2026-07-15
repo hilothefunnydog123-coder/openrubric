@@ -5,7 +5,7 @@ import { TranslateWidget } from "@/components/app/translate-widget";
 import { SessionProvider } from "@/lib/session";
 import "./globals.css";
 
-// Editorial display serif — headlines only. Variable optical size means it
+// Editorial display serif, headlines only. Variable optical size means it
 // sharpens at text sizes and gains contrast + character at display sizes.
 const serif = Fraunces({
   subsets: ["latin"],
@@ -15,14 +15,14 @@ const serif = Fraunces({
   display: "swap",
 });
 
-// Geist — the UI typeface (modern, infrastructure-grade). Variable weight.
+// Geist, the UI typeface (modern, infrastructure-grade). Variable weight.
 const sans = Geist({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
 
-// Geist Mono — labels, metadata, scores, tables.
+// Geist Mono, labels, metadata, scores, tables.
 const mono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
@@ -37,7 +37,7 @@ const APP_URL = (
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: "OpenRubric — Open judging infrastructure for fairer hackathons",
+    default: "OpenRubric · Open judging infrastructure for fairer hackathons",
     template: "%s · OpenRubric",
   },
   description:
@@ -69,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${sans.variable} ${serif.variable} ${mono.variable}`}
     >
       {/* suppressHydrationWarning: browser extensions (Grammarly, password managers)
-          inject attributes onto <body> before hydration — harmless, but noisy. */}
+          inject attributes onto <body> before hydration, harmless, but noisy. */}
       <body suppressHydrationWarning>
         <SessionProvider>
           <DemoProvider>{children}</DemoProvider>

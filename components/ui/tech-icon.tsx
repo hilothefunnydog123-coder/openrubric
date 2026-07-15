@@ -5,11 +5,11 @@ import { LobeAiIcon } from "@/components/ui/lobe-ai-icon";
 import { cn } from "@/lib/utils";
 
 /**
- * TechIcon — one component for any tech-stack / brand label, with a two-source backend:
+ * TechIcon, one component for any tech-stack / brand label, with a two-source backend:
  *
  *   • AI / LLM / agent brands (OpenAI, Anthropic, Claude, Gemini, Hugging Face,
  *     Mistral, Ollama, Perplexity, LangChain) → @lobehub/icons (see lobe-ai-icon.tsx).
- *   • Everything else — web/data stack + auth providers (GitHub, Google) → Simple
+ *   • Everything else, web/data stack + auth providers (GitHub, Google) → Simple
  *     Icons (CC0) path data embedded in lib/tech-icons.ts.
  *
  * Both render monochrome via currentColor, so a chip's icon matches its text on any
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 /**
  * Raw-label → slug, matched BEFORE normalization. Needed for labels whose punctuation
  * carries meaning: "c++" and "c#" both normalize to "c" (the C language), so they must
- * be caught here first or they'd collide with — and steal — the C icon.
+ * be caught here first or they'd collide with, and steal, the C icon.
  */
 const RAW_ALIASES: Record<string, string> = {
   "c++": "cplusplus",

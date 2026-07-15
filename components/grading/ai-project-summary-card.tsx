@@ -21,13 +21,13 @@ export function AIProjectSummaryCard({ ai }: { ai: AiSummary }) {
       </div>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">
-        <Field label="What it does">{ai.what || "—"}</Field>
-        <Field label="Who it helps">{ai.who || "—"}</Field>
-        <Field label="How it works">{ai.how || "—"}</Field>
+        <Field label="What it does">{ai.what || "-"}</Field>
+        <Field label="Who it helps">{ai.who || "-"}</Field>
+        <Field label="How it works">{ai.how || "-"}</Field>
         <div>
           <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.1em] text-faint">Tech stack</div>
           <div className="flex flex-wrap gap-1.5">
-            {(ai.tech ?? []).length === 0 && <span className="text-[12.5px] text-faint">—</span>}
+            {(ai.tech ?? []).length === 0 && <span className="text-[12.5px] text-faint">-</span>}
             {(ai.tech ?? []).map((t) => (
               <span
                 key={t}
@@ -46,13 +46,13 @@ export function AIProjectSummaryCard({ ai }: { ai: AiSummary }) {
           <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.1em] text-signal-clean">
             Strongest part
           </div>
-          <div className="text-[13px] leading-[1.5] text-ink">{ai.strengths_json?.[0] ?? "—"}</div>
+          <div className="text-[13px] leading-[1.5] text-ink">{ai.strengths_json?.[0] ?? "-"}</div>
         </div>
         <div className="flex-1">
           <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.1em] text-signal-review">
             Worth asking about
           </div>
-          <div className="text-[13px] leading-[1.5] text-ink">{ai.weaknesses_json?.[0] ?? "—"}</div>
+          <div className="text-[13px] leading-[1.5] text-ink">{ai.weaknesses_json?.[0] ?? "-"}</div>
         </div>
       </div>
     </div>

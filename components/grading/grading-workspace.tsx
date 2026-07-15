@@ -43,11 +43,11 @@ export function GradingWorkspace({
 }: {
   project: ProjectView;
   criteria?: RubricCriterion[];
-  /** Organizers get a read-only review — no scoring, no final submit. */
+  /** Organizers get a read-only review, no scoring, no final submit. */
   viewerRole?: "organizer" | "judge";
   /** Where the "← All projects" link goes (kept in the viewer's own lane). */
   backHref?: string;
-  /** Hackathon IANA timezone — commit times render in this zone. */
+  /** Hackathon IANA timezone, commit times render in this zone. */
   timezone?: string | null;
   /** The repo's README markdown, fetched server-side and shown in the GitHub view. */
   readme?: string | null;
@@ -64,7 +64,7 @@ export function GradingWorkspace({
   const started = total > 0;
 
   // Register this submission's criteria so autosave knows when every one is scored and can
-  // auto-finalize. There's no manual "submit" — scoring saves and completes on its own.
+  // auto-finalize. There's no manual "submit", scoring saves and completes on its own.
   useEffect(() => {
     registerCriteria(
       project.id,
@@ -112,7 +112,7 @@ export function GradingWorkspace({
                 {total}
                 <span className="font-medium text-faint"> / {max}</span>
               </span>
-              {/* Status auto-updates as you score — no submit button, it all autosaves. */}
+              {/* Status auto-updates as you score, no submit button, it all autosaves. */}
               <span
                 className={cn(
                   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12.5px] font-semibold",
@@ -138,7 +138,7 @@ export function GradingWorkspace({
 
       {/* 3 columns */}
       <div className="grid flex-1 grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)_320px]">
-        {/* LEFT — identity */}
+        {/* LEFT, identity */}
         <aside className="border-b border-line bg-raised p-6 md:border-b-0 md:border-r">
           <div className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">Project</div>
           <h2 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">{project.project_name}</h2>
@@ -187,7 +187,7 @@ export function GradingWorkspace({
           </div>
         </aside>
 
-        {/* CENTER — workspace, organized into tabs */}
+        {/* CENTER, workspace, organized into tabs */}
         <section className="min-w-0 px-6 pb-20 pt-6 md:px-[30px]">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="mb-[22px] flex-wrap">
@@ -235,7 +235,7 @@ export function GradingWorkspace({
           </Tabs>
         </section>
 
-        {/* RIGHT — evidence */}
+        {/* RIGHT, evidence */}
         <aside className="border-t border-line bg-raised p-6 md:border-l md:border-t-0">
           <RealtimeJudgePresence submissionId={project.id} />
           {!reviewOnly && <AutosaveIndicator variant="chip" />}
@@ -247,7 +247,7 @@ export function GradingWorkspace({
             </div>
             <div className="text-[12.5px] leading-[1.5] text-dim">
               {reviewOnly
-                ? "You're viewing this as an organizer — judges score it from their own dashboard."
+                ? "You're viewing this as an organizer, judges score it from their own dashboard."
                 : "No action requested. Score against the rubric as usual."}
             </div>
           </div>

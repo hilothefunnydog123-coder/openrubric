@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /**
- * Google Translate web widget — a lightweight, free way to translate the whole site into
+ * Google Translate web widget, a lightweight, free way to translate the whole site into
  * any language. Client-only: the GT script is injected once after mount, and the dropdown
  * renders into #google_translate_element. Kept isolated so it doesn't fight React hydration
  * (the container is hydration-suppressed; GT mutates its DOM after load).

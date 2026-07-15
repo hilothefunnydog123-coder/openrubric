@@ -11,7 +11,7 @@ import { useSession } from "@/lib/session";
 import { cn, initials } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 
-/** Round avatar — uploaded image, or initials on the user's color. */
+/** Round avatar, uploaded image, or initials on the user's color. */
 function Avatar({
   name,
   color,
@@ -61,7 +61,7 @@ export function ProfileMenu() {
   }, [open]);
 
   // A present Supabase auth cookie ("sb-…") means the user IS signed in and the profile
-  // is just still resolving — show a neutral avatar placeholder, never a misleading
+  // is just still resolving, show a neutral avatar placeholder, never a misleading
   // "Sign in". The sign-in affordance only appears when there's genuinely no session.
   const hasAuthCookie =
     typeof document !== "undefined" && /(?:^|;\s*)sb-[^=]+-auth-token/.test(document.cookie);
@@ -214,7 +214,7 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     }
   }
 
-  // Portal to <body> so the modal centers on the viewport — rendering it inside the
+  // Portal to <body> so the modal centers on the viewport, rendering it inside the
   // backdrop-blurred TopNav would anchor `position: fixed` to that header instead.
   if (typeof document === "undefined") return null;
 

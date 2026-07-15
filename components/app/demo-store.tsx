@@ -11,7 +11,7 @@
  * Autosave is real: any edit is debounced (850ms) and POSTed to /api/scores/autosave,
  * keyed by (submission_id, judge_id) so judges never overwrite each other. When every
  * criterion is scored, that same autosave auto-finalizes the submission (status →
- * Completed) — there's no separate "submit" step. The indicator reflects the network
+ * Completed), there's no separate "submit" step. The indicator reflects the network
  * result (saved / saving / unsaved).
  */
 

@@ -42,7 +42,7 @@ export function LiveImport({
   /** Persist projects, then scan+summarize each one sequentially so they stream in. */
   async function ingest(projects: Record<string, unknown>[], auto = false) {
     if (!projects.length) {
-      if (!auto) setNote("Nothing to import — that gallery looks empty.");
+      if (!auto) setNote("Nothing to import, that gallery looks empty.");
       return;
     }
     setBusy(true);
@@ -64,12 +64,12 @@ export function LiveImport({
       setRows([]);
       return;
     }
-    // Dedup on the server may leave nothing new — that's the steady state when polling.
+    // Dedup on the server may leave nothing new, that's the steady state when polling.
     if (data.submissions.length === 0) {
       setBusy(false);
       busyRef.current = false;
       setRows([]);
-      setNote(auto ? null : "All caught up — no new submissions.");
+      setNote(auto ? null : "All caught up, no new submissions.");
       return;
     }
     setRows(data.submissions.map((s: { id: string; project_name: string }) => ({
@@ -136,7 +136,7 @@ export function LiveImport({
     [hackathonId],
   );
 
-  // Once a Devpost URL is saved, pull new submissions now and every couple of minutes —
+  // Once a Devpost URL is saved, pull new submissions now and every couple of minutes -
   // but only while submissions are still open. After the deadline we stop (judging phase).
   useEffect(() => {
     if (!devpostUrl) return;
@@ -175,10 +175,10 @@ export function LiveImport({
 
       <p className="mt-2 text-[11.5px] leading-[1.5] text-faint">
         {pastDeadline
-          ? "Submissions are closed — auto-sync is paused. You can still re-import manually."
+          ? "Submissions are closed, auto-sync is paused. You can still re-import manually."
           : devpostUrl
             ? "Auto-importing new submissions every couple of minutes until your deadline."
-            : "Optional — add it whenever you have it. Once imported, new submissions keep flowing in automatically until your deadline."}
+            : "Optional, add it whenever you have it. Once imported, new submissions keep flowing in automatically until your deadline."}
       </p>
 
       {rows.length > 0 && (

@@ -72,7 +72,7 @@ export default async function RankingsPage() {
                 Hold before award
               </div>
               <div className="text-[16px] font-semibold tracking-[-0.01em]">
-                {blockedTop.project.project_name} — top in {blockedTop.project.track}
+                {blockedTop.project.project_name}, top in {blockedTop.project.track}
               </div>
               <div className="mt-1.5 text-[12.5px] leading-[1.45] text-dim">
                 Top score, but a high-priority review is unresolved. Resolve it before this award is final.

@@ -10,7 +10,7 @@ export async function AppShell({
   role: "organizer" | "judge";
   children: React.ReactNode;
 }) {
-  // Until a hackathon exists, the organizer's other tabs stay locked — there's
+  // Until a hackathon exists, the organizer's other tabs stay locked, there's
   // nothing to show yet. The sidebar chip reflects the real event (or "no event yet").
   const hackathon = await getActiveHackathon();
 

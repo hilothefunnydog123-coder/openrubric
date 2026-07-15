@@ -11,7 +11,7 @@ import { ROUTES } from "@/lib/constants";
 /**
  * Shown when someone arrives from a judge invite link after signing up. Confirms the
  * hackathon they were invited to, finalizes the invitation (idempotent), and walks them
- * straight into judging — no role choice.
+ * straight into judging, no role choice.
  */
 export function JudgeWelcome({
   token,
@@ -40,7 +40,7 @@ export function JudgeWelcome({
   const perks = [
     { icon: ClipboardCheck, text: "Score each project against the event's rubric." },
     { icon: GitBranch, text: "See real GitHub timelines and AI quick-summaries." },
-    { icon: ShieldCheck, text: "You'll only see this hackathon — nothing else to set up." },
+    { icon: ShieldCheck, text: "You'll only see this hackathon, nothing else to set up." },
   ];
 
   return (
@@ -87,7 +87,7 @@ export function JudgeWelcome({
             ) : (
               "You've been invited to help score submissions."
             )}{" "}
-            We&apos;ve set up your judging space — open it to start.
+            We&apos;ve set up your judging space, open it to start.
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export function JudgeWelcome({
             )}
           </button>
           <p className="mt-3 text-center font-mono text-[10.5px] text-faint">
-            Takes a second — we&apos;ll line up your projects.
+            Takes a second, we&apos;ll line up your projects.
           </p>
         </div>
       </motion.div>

@@ -129,7 +129,7 @@ export function ScoreRequestFlow() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Step 1 — find the hackathon */}
+      {/* Step 1, find the hackathon */}
       <div className={card}>
         <div className={label}>Step 1 · Find your hackathon</div>
         <input
@@ -157,7 +157,7 @@ export function ScoreRequestFlow() {
         )}
       </div>
 
-      {/* Step 2 — pick the project */}
+      {/* Step 2, pick the project */}
       {hackathon && (
         <div className={card}>
           <div className={label}>Step 2 · Pick your project</div>
@@ -182,7 +182,7 @@ export function ScoreRequestFlow() {
         </div>
       )}
 
-      {/* Step 3 — submit / status */}
+      {/* Step 3, submit / status */}
       {hackathon && project && (
         <div className={card}>
           <div className={label}>Step 3 · Request your score</div>
@@ -205,7 +205,7 @@ export function ScoreRequestFlow() {
           {status === "pending" && (
             <div className="flex items-center justify-between gap-3">
               <p className="text-[13.5px] text-dim">
-                Request submitted — waiting on an organizer to review it.
+                Request submitted, waiting on an organizer to review it.
               </p>
               <button
                 onClick={() => refreshStatus(project.id)}

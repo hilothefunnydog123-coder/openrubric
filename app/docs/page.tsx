@@ -79,7 +79,7 @@ export default function DocsPage() {
             </h1>
             <p className="mb-16 max-w-[60ch] text-[17px] leading-[1.6] text-dim">
               OpenRubric is a nonprofit, open-source judging system. This guide covers the judging
-              flow, the core concepts, how to self-host, and — most importantly — how to use the
+              flow, the core concepts, how to self-host, and, most importantly, how to use the
               GitHub review signals responsibly.
             </p>
 
@@ -106,7 +106,7 @@ export default function DocsPage() {
               <p className={P}>The end-to-end flow is six steps:</p>
               <ol className="mb-4 max-w-[62ch] list-inside list-decimal space-y-1.5 text-[15px] leading-[1.6] text-ink marker:font-mono marker:text-accent">
                 <li>Paste a Devpost hackathon URL (or upload a CSV / add projects manually).</li>
-                <li>Import projects — only public metadata is read.</li>
+                <li>Import projects, only public metadata is read.</li>
                 <li>Paste your rubric; OpenRubric turns it into scorable, weighted criteria.</li>
                 <li>Invite judges and assign tracks or specific submissions.</li>
                 <li>Judges score live; each judge keeps an independent record.</li>
@@ -128,7 +128,7 @@ export default function DocsPage() {
                 winners are computed per track and overall.
               </p>
               <p className={P}>
-                <strong>Judges.</strong> Each judge has their own score record — judges never
+                <strong>Judges.</strong> Each judge has their own score record, judges never
                 overwrite each other. The organizer aggregates judge scores into averages.
               </p>
               <p className={P}>
@@ -145,7 +145,7 @@ export default function DocsPage() {
                 When a <code className="rounded bg-raised px-1.5 py-0.5 font-mono text-[13px]">GITHUB_TOKEN</code>{" "}
                 is configured, OpenRubric scans each repo&apos;s creation date, first and last commit,
                 pre-event and post-deadline commits, and contributors. Each observation is phrased as
-                something an organizer might ask about — for example:
+                something an organizer might ask about, for example:
               </p>
               <blockquote className="mb-4 max-w-[62ch] border-l-2 border-accent bg-raised px-5 py-4 text-[14.5px] leading-[1.55] text-ink">
                 “GitHub timeline shows 9 commits before the hackathon start. This does not prove a

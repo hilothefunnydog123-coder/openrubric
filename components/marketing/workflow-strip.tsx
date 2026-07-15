@@ -30,7 +30,7 @@ export function WorkflowStrip() {
               key={w.step}
               className="group px-5 py-6 transition-colors duration-300 hover:bg-surface"
             >
-              <div className="mb-3.5 font-mono text-[11px] text-faint transition-colors duration-300 group-hover:text-accent">
+              <div className="mb-3.5 font-mono text-[11px] font-bold text-ink transition-colors duration-300 group-hover:text-accent">
                 {w.step}
               </div>
               <div className="text-[14.5px] font-semibold leading-tight tracking-[-0.01em]">

@@ -44,18 +44,18 @@ export function FeedbackForm() {
         setMessage("");
       } else {
         setStatus("error");
-        setError("Couldn't send that — please try again, or email us directly.");
+        setError("Couldn't send that. Please try again, or email us directly.");
       }
     } catch {
       setStatus("error");
-      setError("Network error — please try again, or email us directly.");
+      setError("Network error. Please try again, or email us directly.");
     }
   }
 
   if (status === "sent") {
     return (
       <div className="rounded-[14px] border border-accent bg-accent-soft p-6">
-        <div className="mb-1.5 text-[16px] font-semibold tracking-[-0.01em]">Thank you — got it. 🙌</div>
+        <div className="mb-1.5 text-[16px] font-semibold tracking-[-0.01em]">Thank you, got it. 🙌</div>
         <p className="text-[14px] leading-[1.6] text-dim">
           Your note is on its way to the team. If you left an email, we&apos;ll follow up there.
         </p>

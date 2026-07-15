@@ -60,7 +60,7 @@ function TrackSelect({
         body: JSON.stringify({ submission_id: submissionId, track_id: next || null }),
       });
     } catch {
-      /* keep the optimistic value — it retries on the next change */
+      /* keep the optimistic value, it retries on the next change */
     } finally {
       setSaving(false);
     }
@@ -76,7 +76,7 @@ function TrackSelect({
         Judging track{saving ? " · saving…" : ""}
       </span>
       {/* Custom dropdown (no native <select>) so it looks identical on Mac, Windows,
-          and Linux — and themes with the rest of OpenRubric. */}
+          and Linux, and themes with the rest of OpenRubric. */}
       <div ref={ref} className="relative">
         <button
           type="button"

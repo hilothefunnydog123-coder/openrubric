@@ -44,7 +44,7 @@ export default function TermsPage() {
             You agree to use the Service for legitimate hackathon and project-judging purposes. You
             will not use it to harass others, upload unlawful content, attempt to breach security or
             access data that isn&apos;t yours, or disrupt the Service for other users. Judging
-            decisions and any awards are made by organizers — {SITE.name} surfaces evidence and
+            decisions and any awards are made by organizers, {SITE.name} surfaces evidence and
             scores but does not make final decisions on your behalf.
           </p>
 

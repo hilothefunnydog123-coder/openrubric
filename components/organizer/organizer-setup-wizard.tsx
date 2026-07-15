@@ -30,7 +30,7 @@ const TITLES = ["", "Hackathon details", "Import submissions", "Define your rubr
 const SUBS = [
   "",
   "The basics judges and participants will see.",
-  "Pull projects straight from your Devpost gallery — we keep syncing new ones automatically.",
+  "Pull projects straight from your Devpost gallery, we keep syncing new ones automatically.",
   "Start from the OpenRubric default, edit it, or generate one from a photo.",
   "Group submissions into the prizes you’re awarding.",
   "Add judges and decide what each one scores.",
@@ -51,22 +51,22 @@ const FIELDS: { key: string; label: string; span2?: boolean; type?: string }[] =
 const TIMEZONES: { value: string; label: string }[] = [
   { value: "Pacific/Honolulu", label: "Hawaii (HST)" },
   { value: "America/Anchorage", label: "Alaska (AKT)" },
-  { value: "America/Los_Angeles", label: "Pacific — Los Angeles (PT)" },
-  { value: "America/Denver", label: "Mountain — Denver (MT)" },
-  { value: "America/Chicago", label: "Central — Chicago (CT)" },
-  { value: "America/New_York", label: "Eastern — New York (ET)" },
+  { value: "America/Los_Angeles", label: "Pacific, Los Angeles (PT)" },
+  { value: "America/Denver", label: "Mountain, Denver (MT)" },
+  { value: "America/Chicago", label: "Central, Chicago (CT)" },
+  { value: "America/New_York", label: "Eastern, New York (ET)" },
   { value: "America/Sao_Paulo", label: "São Paulo (BRT)" },
   { value: "UTC", label: "UTC" },
   { value: "Europe/London", label: "London (GMT/BST)" },
-  { value: "Europe/Paris", label: "Central European — Paris (CET)" },
-  { value: "Europe/Berlin", label: "Central European — Berlin (CET)" },
-  { value: "Europe/Athens", label: "Eastern European — Athens (EET)" },
+  { value: "Europe/Paris", label: "Central European, Paris (CET)" },
+  { value: "Europe/Berlin", label: "Central European, Berlin (CET)" },
+  { value: "Europe/Athens", label: "Eastern European, Athens (EET)" },
   { value: "Africa/Johannesburg", label: "Johannesburg (SAST)" },
   { value: "Asia/Dubai", label: "Dubai (GST)" },
-  { value: "Asia/Kolkata", label: "India — Kolkata (IST)" },
+  { value: "Asia/Kolkata", label: "India, Kolkata (IST)" },
   { value: "Asia/Singapore", label: "Singapore (SGT)" },
-  { value: "Asia/Shanghai", label: "China — Shanghai (CST)" },
-  { value: "Asia/Tokyo", label: "Japan — Tokyo (JST)" },
+  { value: "Asia/Shanghai", label: "China, Shanghai (CST)" },
+  { value: "Asia/Tokyo", label: "Japan, Tokyo (JST)" },
   { value: "Australia/Sydney", label: "Sydney (AET)" },
   { value: "Pacific/Auckland", label: "Auckland (NZT)" },
 ];
@@ -99,7 +99,7 @@ function isoToLocalInput(iso?: string | null): string {
 
 /**
  * The datetime-local inputs hold a NAIVE wall-clock value (no zone). The organizer
- * means that wall time IN THE HACKATHON'S timezone — not the browser's, and definitely
+ * means that wall time IN THE HACKATHON'S timezone, not the browser's, and definitely
  * not the (UTC) server's. These two helpers convert between the input's wall-clock and
  * a real UTC instant using the selected IANA zone, so a time round-trips unchanged and
  * is stored as the correct moment (which is what the GitHub deadline check relies on).
@@ -165,7 +165,7 @@ function isoToZonedInput(iso?: string | null, timeZone?: string | null): string 
   return `${map.year}-${map.month}-${map.day}T${hour}:${map.minute}`;
 }
 
-/** Custom timezone dropdown — styled to match the wizard inputs (no native <select>). */
+/** Custom timezone dropdown, styled to match the wizard inputs (no native <select>). */
 function TimezoneSelect({
   value,
   options,
@@ -278,7 +278,7 @@ export function OrganizerSetupWizard({
   const [step, setStep] = useState(Math.min(5, Math.max(1, initialStep)));
 
   // Form state preserved across steps. Pre-filled from the saved hackathon in edit mode.
-  // Dates start empty and are filled after mount — datetime-local values depend on the
+  // Dates start empty and are filled after mount, datetime-local values depend on the
   // runtime timezone, so computing them during SSR causes a hydration attribute mismatch.
   const [form, setForm] = useState<Record<string, string>>({
     name: existing?.hackathon.name ?? "",
@@ -291,7 +291,7 @@ export function OrganizerSetupWizard({
     timezone: existing?.hackathon.timezone ?? "",
   });
 
-  // Fill dates from the saved hackathon (edit) or sensible defaults (new) — client-only.
+  // Fill dates from the saved hackathon (edit) or sensible defaults (new), client-only.
   // Timezone defaults to the organizer's own detected zone.
   useEffect(() => {
     let detected = "UTC";
@@ -329,7 +329,7 @@ export function OrganizerSetupWizard({
   const [tracks, setTracks] = useState<string[]>(existing?.tracks?.length ? existing.tracks : DEFAULT_TRACK_NAMES);
   const [judges, setJudges] = useState<DemoJudgeRow[]>([]);
   const [judgesPerProject, setJudgesPerProject] = useState<number>(existing?.hackathon.judges_per_project ?? 1);
-  // Projects scraped during a NEW setup (no hackathon id yet) — persisted right after create.
+  // Projects scraped during a NEW setup (no hackathon id yet), persisted right after create.
   const [importedProjects, setImportedProjects] = useState<ImportProject[]>([]);
   const [logoUploading, setLogoUploading] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
@@ -402,7 +402,7 @@ export function OrganizerSetupWizard({
   function websiteGate(): boolean {
     if (!form.website_url.trim()) return true;
     if (urlStatus === "checking") {
-      setError("Still checking that link — give it a second.");
+      setError("Still checking that link, give it a second.");
       return false;
     }
     if (urlStatus === "bad") {
@@ -425,7 +425,7 @@ export function OrganizerSetupWizard({
       const data = await res.json().catch(() => ({}));
       // Kick off the GitHub scan + AI summary for each new submission (fire-and-forget
       // so opening the dashboard isn't blocked; summaries fill in shortly after). Process
-      // SEQUENTIALLY with a small gap — firing them all at once would saturate the free
+      // SEQUENTIALLY with a small gap, firing them all at once would saturate the free
       // AI rate limit and leave some summaries as degraded stubs. The cron repair pass
       // backstops anything that still slips through.
       const subs: { id: string }[] = Array.isArray(data?.submissions) ? data.submissions : [];
@@ -434,13 +434,13 @@ export function OrganizerSetupWizard({
           try {
             await fetch(`/api/submissions/${s.id}/process`, { method: "POST" });
           } catch {
-            /* keep going — one failure shouldn't stall the batch */
+            /* keep going, one failure shouldn't stall the batch */
           }
           await new Promise((r) => setTimeout(r, 1500));
         }
       })();
     } catch {
-      /* non-fatal — the organizer can re-import from the Import tab */
+      /* non-fatal, the organizer can re-import from the Import tab */
     }
   }
 
@@ -575,14 +575,14 @@ export function OrganizerSetupWizard({
                 )}
               >
                 {urlStatus === "checking" && "Checking the link…"}
-                {urlStatus === "ok" && (urlTitle ? `✓ Reachable — ${urlTitle}` : "✓ Reachable")}
+                {urlStatus === "ok" && (urlTitle ? `✓ Reachable, ${urlTitle}` : "✓ Reachable")}
                 {urlStatus === "bad" && "✗ Couldn't reach that link. Double-check the URL."}
               </p>
             )}
           </div>
         ))}
 
-        {/* Event timezone — used to show GitHub commit times in local time for judges. */}
+        {/* Event timezone, used to show GitHub commit times in local time for judges. */}
         <div className="sm:col-span-2">
           <Label htmlFor="timezone">Hackathon timezone</Label>
           <TimezoneSelect
@@ -645,7 +645,7 @@ export function OrganizerSetupWizard({
           <Eyebrow className="mb-1.5">Edit hackathon</Eyebrow>
           <h1 className="text-2xl font-semibold tracking-[-0.02em]">Your hackathon settings</h1>
           <p className="mt-1 text-[13px] text-dim">
-            Everything&apos;s saved — tweak anything below and hit Save changes. You won&apos;t lose your data.
+            Everything&apos;s saved, tweak anything below and hit Save changes. You won&apos;t lose your data.
           </p>
         </div>
 

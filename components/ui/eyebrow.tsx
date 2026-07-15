@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 type Tone = "dim" | "accent" | "faint" | "ondark";
 
 const toneClass: Record<Tone, string> = {
-  dim: "text-dim",
+  dim: "text-ink",
   accent: "text-accent",
-  faint: "text-faint",
-  ondark: "text-ondark",
+  faint: "text-ink",
+  ondark: "text-white",
 };
 
 /** The mono uppercase metadata label used as a section/eyebrow marker everywhere. */
@@ -22,7 +22,7 @@ export function Eyebrow({
   return (
     <div
       className={cn(
-        "font-mono text-[11px] uppercase tracking-[0.14em]",
+        "font-mono text-[11px] font-bold uppercase tracking-[0.14em]",
         toneClass[tone],
         className,
       )}

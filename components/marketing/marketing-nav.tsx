@@ -33,16 +33,16 @@ export function MarketingNav() {
         scrolled && "shadow-[0_1px_0_rgb(var(--border)),0_12px_32px_-18px_rgba(0,0,0,0.18)]",
       )}
     >
-      {/* Alpha notice — the first thing every visitor sees. */}
+      {/* Alpha notice, the first thing every visitor sees. */}
       <Link
         href={ROUTES.feedback}
-        className="group flex items-center justify-center gap-2 border-b border-line-soft bg-accent-soft px-5 py-2.5 text-center font-mono text-[12px] tracking-[0.02em] text-dim transition-colors hover:text-ink"
+        className="group flex items-center justify-center gap-2 border-b border-line-soft bg-accent-soft px-5 py-2.5 text-center font-mono text-[12px] font-bold tracking-[0.02em] text-ink"
       >
         <span className="rounded-full border border-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent">
           Alpha
         </span>
         <span>
-          OpenRubric is in early alpha — expect bugs. Report an issue{" "}
+          OpenRubric is in early alpha, expect bugs. Report an issue{" "}
           <span className="inline-block text-accent transition-transform duration-300 ease-out group-hover:translate-x-0.5">
             →
           </span>
@@ -55,7 +55,7 @@ export function MarketingNav() {
           <Logo />
         </Link>
 
-        <div className="hidden items-center gap-7 text-sm text-dim md:flex">
+        <div className="hidden items-center gap-7 text-sm font-semibold text-ink md:flex">
           {NAV_LINKS.map((l) =>
             l.external ? (
               <a

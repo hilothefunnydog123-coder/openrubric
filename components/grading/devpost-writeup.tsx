@@ -4,7 +4,7 @@
  * Devpost write-ups arrive in wildly different shapes: some are clean Markdown
  * ("## Challenges", "- item", "**bold**"); some are plain text with the standard section
  * headings on their own lines; and some teams run a heading straight into its paragraph
- * ("What It Does Boomerang is a multi-agent…"). This renderer normalizes all of them —
+ * ("What It Does Boomerang is a multi-agent…"). This renderer normalizes all of them -
  * Markdown headings/bullets/emphasis, bare section headings, AND headings prefixed to a
  * paragraph (split off into a real header). All text reaches the DOM as escaped React
  * children (no dangerouslySetInnerHTML), so an untrusted write-up can't inject markup.
@@ -47,9 +47,10 @@ function splitLeadingHeading(line: string): { heading: string; rest: string } | 
     const heading = line.slice(0, s.length).trim();
     const after = line.slice(s.length);
     if (!after.trim()) return { heading, rest: "" }; // heading on its own line
+    // – en dash, — em dash: Devpost writeups still contain them.
     const m = after.match(/^[\s:–—-]+(.+)$/);
     if (m && /^[A-Z0-9“"']/.test(m[1].trim())) return { heading, rest: m[1].trim() };
-    return null; // the heading word is part of a sentence — treat as a paragraph
+    return null; // the heading word is part of a sentence, treat as a paragraph
   }
   return null;
 }

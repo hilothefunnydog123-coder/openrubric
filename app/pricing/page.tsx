@@ -18,7 +18,7 @@ const FREE = [
   "Shared rubric scoring with live autosave",
   "Per-track winners, overall rankings, CSV export",
   "Bring your own AI key (GitHub Models is free)",
-  "Self-host on your own Supabase — your data, your control",
+  "Self-host on your own Supabase, your data, your control",
 ];
 
 const MANAGED = [
@@ -26,7 +26,7 @@ const MANAGED = [
   "We import your submissions and wire up your rubric",
   "We invite your judges and configure tracks",
   "Live GitHub review + AI summaries fully enabled",
-  "You watch results roll in — no setup, no infra",
+  "You watch results roll in, no setup, no infra",
   "Email support throughout your event",
 ];
 
@@ -43,7 +43,7 @@ export default function PricingPage() {
             </h1>
             <p className="mx-auto max-w-[56ch] text-[15px] leading-[1.65] text-dim">
               OpenRubric is MIT-licensed and free forever to self-host. If you&apos;d rather not touch
-              the setup, we&apos;ll run your event with our own AI model — you just watch the results.
+              the setup, we&apos;ll run your event with our own AI model, you just watch the results.
             </p>
           </div>
 
@@ -94,7 +94,7 @@ export default function PricingPage() {
               </div>
               <p className="mb-5 text-[13.5px] leading-[1.55] text-dim">
                 A flat fee per hackathon. We manually add the API credits and run the AI model for
-                you — all you do is sit back and watch the results happen.
+                you, all you do is sit back and watch the results happen.
               </p>
               <ul className="mb-6 flex flex-col gap-2.5">
                 {MANAGED.map((f) => (
@@ -119,7 +119,7 @@ export default function PricingPage() {
           </div>
 
           <p className="mx-auto mt-10 max-w-[60ch] text-center text-[12.5px] leading-[1.6] text-faint">
-            The managed option is a convenience service — the software itself is, and always will be,
+            The managed option is a convenience service, the software itself is, and always will be,
             free and open-source under the MIT license.
           </p>
         </div>

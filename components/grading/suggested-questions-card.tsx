@@ -5,7 +5,7 @@ import { Check, Copy } from "lucide-react";
 
 /**
  * AI-generated, product-specific questions for the judge to ask the team. Each row is
- * clickable — click to copy it (handy to paste into the shared notes or read aloud).
+ * clickable, click to copy it (handy to paste into the shared notes or read aloud).
  */
 export function SuggestedQuestionsCard({ questions }: { questions: string[] }) {
   const [copied, setCopied] = useState<number | null>(null);

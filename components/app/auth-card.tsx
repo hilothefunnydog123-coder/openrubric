@@ -31,7 +31,7 @@ function friendlyAuthError(message: string): string {
   if (m.includes("invalid login credentials"))
     return "We couldn't find an account matching that email and password. Check your details, or create an account.";
   if (m.includes("email not confirmed"))
-    return "Please verify your email first — check your inbox for the code we sent.";
+    return "Please verify your email first. Check your inbox for the code we sent.";
   if (m.includes("rate") || m.includes("too many"))
     return "Too many attempts right now. Wait a minute, then try again.";
   if (m.includes("password"))
@@ -101,11 +101,11 @@ export function AuthCard({
         setCopied(true);
         setTimeout(() => setCopied(false), 1600);
       })
-      .catch(() => showToast("Couldn't copy — select the code and copy it manually."));
+      .catch(() => showToast("Couldn't copy. Select the code and copy it manually."));
   }
 
   function openWorkspace() {
-    // Invited judges already had their invite accepted during verification — send them
+    // Invited judges already had their invite accepted during verification, send them
     // straight to judging in the SAME tab (no second sign-up). Organizers open setup.
     if (invite) {
       router.push(ROUTES.judgeDashboard);
@@ -143,13 +143,13 @@ export function AuthCard({
     setInfo(null);
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      router.push(ROUTES.getStarted); // demo mode — no backend configured
+      router.push(ROUTES.getStarted); // demo mode, no backend configured
       return;
     }
     setPending(true);
     const inviteQs = invite ? `?invite=${encodeURIComponent(invite)}` : "";
     // Prefer the canonical app URL (openrubric.vercel.app via NEXT_PUBLIC_APP_URL) so OAuth
-    // always returns to production — never localhost or a preview origin. Falls back to the
+    // always returns to production, never localhost or a preview origin. Falls back to the
     // current origin only if the env var isn't set.
     const base =
       process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") ||
@@ -158,7 +158,7 @@ export function AuthCard({
       provider,
       options: {
         // Return to our callback route, which exchanges the code for a session, accepts
-        // the invite, and routes the judge straight to judging — never back to sign in.
+        // the invite, and routes the judge straight to judging, never back to sign in.
         redirectTo: `${base}${ROUTES.authCallback}${inviteQs}`,
       },
     });
@@ -248,7 +248,7 @@ export function AuthCard({
         setCode("");
         showToast(
           data.reason === "expired"
-            ? "That code expired — tap resend for a new one."
+            ? "That code expired. Tap resend for a new one."
             : "That code isn't right. Check your email and try again.",
         );
         return;
@@ -265,7 +265,7 @@ export function AuthCard({
           setCodeStatus("error");
           showToast(
             data.existed
-              ? "This email already has an account — please sign in with your existing password."
+              ? "This email already has an account. Please sign in with your existing password."
               : friendlyAuthError(signInError.message),
           );
           return;
@@ -280,7 +280,7 @@ export function AuthCard({
           body: JSON.stringify({ token: invite, email }),
         }).catch(() => {});
       }
-      // Verified here — clear the pending stash so a later magic-link click is a no-op.
+      // Verified here, clear the pending stash so a later magic-link click is a no-op.
       try {
         window.localStorage.removeItem(PENDING_SIGNUP_KEY);
       } catch {
@@ -297,7 +297,7 @@ export function AuthCard({
   async function onSignUp(values: SignUpValues) {
     setError(null);
     setInfo(null);
-    // No account is created yet — we only email a 6-digit code and open the
+    // No account is created yet, we only email a 6-digit code and open the
     // verification panel. The Supabase user is created after the code is verified
     // (see verifyCode → /api/auth/register), so unverified emails never get stored.
     //
@@ -315,7 +315,7 @@ export function AuthCard({
         }),
       );
     } catch {
-      /* storage may be unavailable — the typed-code path still works */
+      /* storage may be unavailable, the typed-code path still works */
     }
     await requestVerification(values.email);
   }
@@ -362,12 +362,12 @@ export function AuthCard({
                   <h1 className="mb-1.5 font-serif text-[28px] font-normal leading-[1.12] tracking-[-0.015em]">
                     Email verified
                   </h1>
-                  <p className="mb-6 text-[14.5px] text-ink/70">
-                    You&apos;re all set
+                  <p className="mb-6 text-[14.5px] font-semibold text-ink">
+                    You&apos;re all set.
                     {sentTo ? (
                       <>
                         {" "}
-                        — <span className="font-medium text-ink">{sentTo}</span>
+                        <span className="font-bold text-ink">{sentTo}</span>
                       </>
                     ) : null}{" "}
                     is confirmed.
@@ -379,7 +379,7 @@ export function AuthCard({
                   >
                     Continue →
                   </button>
-                  <p className="mt-2.5 font-mono text-[11px] text-faint">
+                  <p className="mt-2.5 font-mono text-[11px] font-bold text-ink">
                     Opens your workspace in a new tab.
                   </p>
                 </div>
@@ -394,7 +394,7 @@ export function AuthCard({
                   <h1 className="mb-2 font-serif text-[28px] font-normal leading-[1.12] tracking-[-0.015em]">
                     Check your email
                   </h1>
-                  <p className="mb-4 text-[14.5px] leading-relaxed text-ink/70">
+                  <p className="mb-4 text-[14.5px] font-semibold leading-relaxed text-ink">
                     Enter the 6-digit code we sent to{" "}
                     <span className="font-medium text-ink">{sentTo}</span>.
                   </p>
@@ -411,12 +411,12 @@ export function AuthCard({
                   />
 
                   {verifying && (
-                    <p className="mb-3 mt-3 font-mono text-[11px] text-dim">Verifying…</p>
+                    <p className="mb-3 mt-3 font-mono text-[11px] font-bold text-ink">Verifying…</p>
                   )}
 
                   {demoCode && (
                     <div className="mb-4 flex items-center justify-center gap-2">
-                      <span className="font-mono text-[11px] text-faint">Demo code</span>
+                      <span className="font-mono text-[11px] font-bold text-ink">Demo code</span>
                       <button
                         type="button"
                         onClick={() => copyCode(demoCode)}
@@ -451,7 +451,7 @@ export function AuthCard({
                     );
                   })()}
 
-                  <p className="mb-4 mt-2.5 text-[11.5px] text-faint">
+                  <p className="mb-4 mt-2.5 text-[11.5px] font-semibold text-ink">
                     Don&apos;t see it? Check your spam or promotions folder.
                   </p>
 
@@ -477,7 +477,7 @@ export function AuthCard({
               <h1 className="mb-2 text-center font-serif text-[30px] font-normal leading-[1.12] tracking-[-0.015em]">
                 {isSignUp ? "Create your account" : "Welcome back"}
               </h1>
-          <p className="mx-auto mb-7 max-w-[34ch] text-center text-[14.5px] leading-[1.55] text-ink/70">
+          <p className="mx-auto mb-7 max-w-[34ch] text-center text-[14.5px] font-semibold leading-[1.55] text-ink">
             {isSignUp
               ? invite
                 ? "Accept your judge invitation by signing up with the invited email."
@@ -526,7 +526,7 @@ export function AuthCard({
 
           <div className="mb-5 flex items-center gap-3">
             <span className="h-px flex-1 bg-line" />
-            <span className="font-mono text-[11px] text-faint">OR CONTINUE WITH EMAIL</span>
+            <span className="font-mono text-[11px] font-bold text-ink">OR CONTINUE WITH EMAIL</span>
             <span className="h-px flex-1 bg-line" />
           </div>
 
@@ -614,7 +614,7 @@ export function AuthCard({
           )}
           </motion.div>
 
-        <div className="mt-5 text-center text-[13px] text-dim">
+        <div className="mt-5 text-center text-[13px] font-semibold text-ink">
           {isSignUp ? (
             <>
               Already have an account?{" "}

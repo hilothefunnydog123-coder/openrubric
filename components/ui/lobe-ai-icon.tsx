@@ -18,7 +18,7 @@ import LangChain from "@lobehub/icons/es/LangChain/components/Mono";
 
 /**
  * Renders an AI/LLM brand mark from @lobehub/icons. We use each icon's default
- * (Mono) component — a self-contained <svg fill="currentColor">, so it inherits the
+ * (Mono) component, a self-contained <svg fill="currentColor">, so it inherits the
  * surrounding text color exactly like the Simple Icons set, and stays consistent on
  * both the dark hero panel and the light judge cards.
  *

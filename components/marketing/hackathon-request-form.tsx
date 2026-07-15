@@ -18,7 +18,7 @@ import {
 
 const TEAM_EMAILS = "dlake003@gmail.com,aaditmehta1@gmail.com";
 
-/** The pre-drafted email organizers start from — everything stays editable. */
+/** The pre-drafted email organizers start from, everything stays editable. */
 function presetMessage(hackathon: string) {
   const event = hackathon || "our hackathon";
   return `Hi OpenRubric team,
@@ -61,7 +61,7 @@ export function HackathonRequestForm({ initialHackathon }: { initialHackathon: s
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setToast("Couldn't send your request — please try again in a minute.");
+        setToast("Couldn't send your request. Please try again in a minute.");
         return;
       }
       // demo = this deployment has no mailer configured; offer a mailto instead
@@ -69,7 +69,7 @@ export function HackathonRequestForm({ initialHackathon }: { initialHackathon: s
       setDemoFallback(Boolean(data.demo && !data.emailed));
       setSent({ email: values.email });
     } catch {
-      setToast("Network error — check your connection and try again.");
+      setToast("Network error. Check your connection and try again.");
     }
   }
 
@@ -77,7 +77,7 @@ export function HackathonRequestForm({ initialHackathon }: { initialHackathon: s
     const values = form.getValues();
     const mailto = `mailto:${TEAM_EMAILS}?subject=${encodeURIComponent(
       `Hackathon request · ${values.hackathonName}`,
-    )}&body=${encodeURIComponent(`${values.message}\n\n— ${values.name} (${values.email})`)}`;
+    )}&body=${encodeURIComponent(`${values.message}\n\n${values.name} (${values.email})`)}`;
     return (
       <motion.div
         initial={{ opacity: 0, y: 14 }}
@@ -109,8 +109,8 @@ export function HackathonRequestForm({ initialHackathon }: { initialHackathon: s
             <h2 className="mb-2 font-serif text-[28px] font-normal leading-[1.12] tracking-[-0.015em]">
               Almost there
             </h2>
-            <p className="mx-auto mb-6 max-w-[42ch] text-[15px] leading-[1.6] text-ink/70">
-              This preview deployment can&apos;t send email directly — tap below and your mail
+            <p className="mx-auto mb-6 max-w-[42ch] text-[15px] font-semibold leading-[1.6] text-ink">
+              This preview deployment can&apos;t send email directly. Tap below and your mail
               app will open with everything filled in.
             </p>
             <Button asChild variant="accent" className="rounded-full px-7">
@@ -122,8 +122,8 @@ export function HackathonRequestForm({ initialHackathon }: { initialHackathon: s
             <h2 className="mb-2 font-serif text-[28px] font-normal leading-[1.12] tracking-[-0.015em]">
               Request sent
             </h2>
-            <p className="mx-auto mb-6 max-w-[42ch] text-[15px] leading-[1.6] text-ink/70">
-              We got it — the team will reply at{" "}
+            <p className="mx-auto mb-6 max-w-[42ch] text-[15px] font-semibold leading-[1.6] text-ink">
+              We got it. The team will reply at{" "}
               <span className="font-medium text-ink">{sent.email}</span>, usually within a day
               or two.
             </p>
@@ -196,8 +196,8 @@ export function HackathonRequestForm({ initialHackathon }: { initialHackathon: s
             {form.formState.errors.message.message}
           </p>
         )}
-        <p className="mb-5 text-[13px] text-ink/55">
-          We drafted this for you — edit anything before sending.
+        <p className="mb-5 text-[13px] font-semibold text-ink">
+          We drafted this for you. Edit anything before sending.
         </p>
 
         <Button type="submit" variant="accent" className="w-full rounded-full" disabled={pending}>

@@ -21,7 +21,7 @@ export default function FeedbackPage() {
             Help shape OpenRubric.
           </h1>
           <p className="mb-10 max-w-[58ch] text-[15px] leading-[1.65] text-dim">
-            Got an idea for a feature, or hit something that doesn&apos;t work? Send it over — it goes
+            Got an idea for a feature, or hit something that doesn&apos;t work? Send it over, it goes
             straight to the team. Prefer email? Reach us at{" "}
             <a className="text-accent hover:underline" href={`mailto:${SITE.supportEmail}`}>
               {SITE.supportEmail}

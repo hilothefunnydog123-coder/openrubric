@@ -24,7 +24,7 @@ export interface ImportProject {
 
 /**
  * Devpost-only import. Paste a hackathon's Devpost URL and OpenRubric scrapes its
- * public project gallery. There is no CSV / manual entry — if a hackathon isn't on
+ * public project gallery. There is no CSV / manual entry, if a hackathon isn't on
  * Devpost, organizers reach out via the Contact-us fallback and we accommodate them.
  *
  * - With a `hackathonId`, projects are saved straight to the dashboard and the Devpost
@@ -81,7 +81,7 @@ export function DevpostImportForm({
       try {
         await fetch(`/api/submissions/${subs[i].id}/process`, { method: "POST" });
       } catch {
-        /* keep going — one bad repo shouldn't stall the batch */
+        /* keep going, one bad repo shouldn't stall the batch */
       }
       setAnalyze({ done: i + 1, total: subs.length });
     }
@@ -109,11 +109,11 @@ export function DevpostImportForm({
         setNote("These projects are already on your dashboard.");
         return;
       }
-      setNote(`${data.imported} project${data.imported === 1 ? "" : "s"} added — analyzing…`);
+      setNote(`${data.imported} project${data.imported === 1 ? "" : "s"} added, analyzing…`);
       // Generate the AI summary + GitHub scan for each new project.
       await analyzeAll(subs);
       setNote(
-        `${data.imported} project${data.imported === 1 ? "" : "s"} added and analyzed — summaries & GitHub scans are ready.`,
+        `${data.imported} project${data.imported === 1 ? "" : "s"} added and analyzed, summaries & GitHub scans are ready.`,
       );
     } catch {
       setNote("Network error saving to the dashboard.");
@@ -133,7 +133,7 @@ export function DevpostImportForm({
         body: JSON.stringify({ devpost_url: devpostUrl }),
       });
     } catch {
-      /* non-fatal — auto-poll just won't have a URL until the next save */
+      /* non-fatal, auto-poll just won't have a URL until the next save */
     }
   }
 
@@ -191,7 +191,7 @@ export function DevpostImportForm({
     <div className="flex flex-col gap-3">
       <p className="text-[12.5px] leading-[1.5] text-dim">
         <strong className="font-semibold text-ink">Optional (add closer to the deadline).</strong> No
-        Devpost URL yet? Skip it — you can paste it here any time. Once it&apos;s set, OpenRubric keeps
+        Devpost URL yet? Skip it, you can paste it here any time. Once it&apos;s set, OpenRubric keeps
         pulling in new submissions automatically until your deadline.
       </p>
       <div className="flex items-center gap-3 rounded-[11px] border border-accent bg-accent-soft px-4 py-3.5">
@@ -251,12 +251,12 @@ export function DevpostImportForm({
               </div>
             ))}
           </div>
-          {/* Save action — only when there's a hackathon to attach the projects to. */}
+          {/* Save action, only when there's a hackathon to attach the projects to. */}
           {hackathonId && (
             <div className="flex items-center justify-between gap-3 border-t border-line-soft bg-raised px-4 py-3">
               <span className="text-[12.5px] text-dim">
                 {allSaved
-                  ? "Saved — these show on your dashboard now."
+                  ? "Saved, these show on your dashboard now."
                   : "Add these projects to your dashboard so judges can score them."}
               </span>
               <Button size="sm" onClick={() => saveToDashboard(rows)} disabled={saving || allSaved}>
@@ -288,8 +288,8 @@ export function DevpostImportForm({
 
           <p className="mt-2 font-mono text-[10.5px] text-faint">
             {elapsed < EST_SECONDS
-              ? `Estimated ~${Math.max(5, EST_SECONDS - elapsed)}s left — scanning the gallery, then each project.`
-              : "Almost done — finishing up the last projects…"}
+              ? `Estimated ~${Math.max(5, EST_SECONDS - elapsed)}s left, scanning the gallery, then each project.`
+              : "Almost done, finishing up the last projects…"}
           </p>
         </div>
       ) : analyze ? (
@@ -297,7 +297,7 @@ export function DevpostImportForm({
           <div className="flex items-center gap-2.5">
             <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-accent" />
             <span className="text-[13px] font-medium text-ink">
-              Analyzing projects — GitHub scan + AI summary…
+              Analyzing projects, GitHub scan + AI summary…
             </span>
             <span className="flex-1" />
             <span className="font-mono text-[11.5px] tabular-nums text-faint">
@@ -321,7 +321,7 @@ export function DevpostImportForm({
         )
       )}
 
-      {/* Contact-us fallback — shown after a failed import, since Devpost is the only path. */}
+      {/* Contact-us fallback, shown after a failed import, since Devpost is the only path. */}
       {failed && !importing && (
         <div className="rounded-[11px] border border-line bg-raised p-4">
           <div className="flex items-start gap-2.5">
@@ -330,7 +330,7 @@ export function DevpostImportForm({
               <p className="text-[13px] font-medium text-ink">{note}</p>
               <p className="mt-1 text-[12.5px] leading-[1.5] text-dim">
                 Devpost can block automated requests from some networks, and not every event runs on
-                Devpost. You can add any project by hand below — just the team and product name, same
+                Devpost. You can add any project by hand below, just the team and product name, same
                 rubric. Or if your submissions live somewhere else, contact us and we&apos;ll help you
                 get them in.
               </p>

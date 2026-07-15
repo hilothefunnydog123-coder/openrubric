@@ -6,18 +6,18 @@ import { cn } from "@/lib/utils";
 import { TechIcon } from "@/components/ui/tech-icon";
 
 /**
- * The hero "infrastructure UI" panel — a realistic, *interactive* OpenRubric
+ * The hero "infrastructure UI" panel, a realistic, *interactive* OpenRubric
  * workspace. Dark rounded panel that behaves like a real macOS window:
  *
  *   • Search filters the track list by project / team / participant, and selecting
  *     a project repaints the left column (summary + rubric) and the GitHub timeline.
- *   • The rubric rows are real sliders — drag to score and the total + track rank
+ *   • The rubric rows are real sliders, drag to score and the total + track rank
  *     update live, so visitors can "try it" on the first try.
  *   • The three traffic-light dots work like the macOS title bar:
  *       red = close, yellow = minimize (collapse to the bar), green = zoom (maximize).
  *   • ⌘K (or Ctrl+K) focuses the search field.
  *
- * It stays visually dark in the (now light-only) site — it reads as a product
+ * It stays visually dark in the (now light-only) site, it reads as a product
  * screenshot / mockup, not the site theme.
  */
 
@@ -73,7 +73,7 @@ const PROJECTS: Project[] = [
     score: 83,
     clean: true,
     summary:
-      "An OCR pipeline that turns handwritten prescriptions into structured, pharmacist-checkable orders — with a confidence score and a human-in-the-loop review queue.",
+      "An OCR pipeline that turns handwritten prescriptions into structured, pharmacist-checkable orders, with a confidence score and a human-in-the-loop review queue.",
     tags: ["FastAPI", "Tesseract", "Postgres"],
     rubric: [
       { name: "Innovation", value: 21, max: 25 },
@@ -176,7 +176,7 @@ export function ProductPreviewPanel() {
   const selected =
     filtered.find((p) => p.id === selectedId) ?? filtered[0] ?? PROJECTS.find((p) => p.id === selectedId)!;
 
-  // Editable rubric scores per project — visitors can drag the sliders right here.
+  // Editable rubric scores per project, visitors can drag the sliders right here.
   const [rubricScores, setRubricScores] = useState<Record<string, number[]>>(() =>
     Object.fromEntries(PROJECTS.map((p) => [p.id, p.rubric.map((r) => r.value)])),
   );
@@ -495,7 +495,7 @@ export function ProductPreviewPanel() {
   );
 }
 
-/** A macOS traffic-light dot — just the red/yellow/green coloring, still clickable. */
+/** A macOS traffic-light dot, just the red/yellow/green coloring, still clickable. */
 function WindowDot({ color, label, onClick }: { color: string; label: string; onClick: () => void }) {
   return (
     <button
@@ -509,7 +509,7 @@ function WindowDot({ color, label, onClick }: { color: string; label: string; on
   );
 }
 
-/** Body shown when the window is "closed" — a quiet placeholder with a reopen action. */
+/** Body shown when the window is "closed", a quiet placeholder with a reopen action. */
 function ClosedState({ onReopen }: { onReopen: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">

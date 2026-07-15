@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 /**
  * Organizer approval queue for participant "see your score" requests. The owner (or a
  * co-owner) approves/denies each request and chooses how much detail to reveal, plus a
- * per-hackathon default. The decision is always a human's — nothing is revealed automatically.
+ * per-hackathon default. The decision is always a human's, nothing is revealed automatically.
  */
 
 interface RequestRow {
@@ -107,7 +107,7 @@ export function ApprovalsQueue({
   if (!hackathonId) {
     return (
       <div className="rounded-[14px] border border-line bg-surface p-6 text-[13.5px] text-dim">
-        Create a hackathon first — score requests will appear here once participants ask to see
+        Create a hackathon first, score requests will appear here once participants ask to see
         their scores.
       </div>
     );
@@ -124,7 +124,7 @@ export function ApprovalsQueue({
           Default score sharing
         </div>
         <p className="mb-3 max-w-[60ch] text-[13px] leading-[1.55] text-dim">
-          The detail level suggested when you approve a request. Approval is always required —
+          The detail level suggested when you approve a request. Approval is always required -
           nothing is revealed automatically.
         </p>
         <select

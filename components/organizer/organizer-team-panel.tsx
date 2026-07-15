@@ -50,7 +50,7 @@ export function OrganizerTeamPanel({
           : [...r, { email: value, status: "pending", created_at: new Date().toISOString() }],
       );
       setEmail("");
-      setNote(`Invited ${value} — they'll show as Pending until they accept.`);
+      setNote(`Invited ${value}, they'll show as Pending until they accept.`);
       router.refresh();
     } catch {
       setNote("Network error sending the invite.");
@@ -99,7 +99,7 @@ export function OrganizerTeamPanel({
       {/* list */}
       {rows.length === 0 ? (
         <div className="px-5 py-8 text-center text-[13px] text-faint">
-          No co-organizers yet — invite someone above.
+          No co-organizers yet, invite someone above.
         </div>
       ) : (
         rows.map((o) => (

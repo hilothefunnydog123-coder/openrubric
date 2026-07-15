@@ -23,7 +23,7 @@ const JUDGING_ROOMS = [
   {
     num: "03",
     title: "Publish winners by track",
-    body: "Aggregate judge scores into per-track leaderboards and an overall winner — with review cases resolved first.",
+    body: "Aggregate judge scores into per-track leaderboards and an overall winner, with review cases resolved first.",
   },
 ];
 
@@ -51,7 +51,7 @@ export default function HomePage() {
     <>
       <MarketingNav />
       <main>
-        {/* Hero is intentionally not wrapped in Reveal — its preview panel uses a
+        {/* Hero is intentionally not wrapped in Reveal, its preview panel uses a
             position:fixed maximize overlay that a lingering transform would break.
             The sections below choreograph their own entrances (word-by-word
             headlines, staggered cells, animated meters), so no outer wrappers. */}

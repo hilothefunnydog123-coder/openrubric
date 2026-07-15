@@ -36,7 +36,7 @@ function fmtDateTime(iso: string, timeZone: string | null): string {
       timeZoneName: "short",
     }).format(d);
   } catch {
-    // Invalid IANA zone — fall back to UTC.
+    // Invalid IANA zone, fall back to UTC.
     return new Intl.DateTimeFormat("en-US", {
       timeZone: "UTC",
       month: "short",
@@ -99,7 +99,7 @@ export function ScreenshotsGithubCard({
         {shots.length === 0 ? (
           <p className="text-[13px] text-dim">
             No screenshots were captured for this project. They&apos;re pulled from the public Devpost
-            gallery on import — some projects don&apos;t upload any, or Devpost blocked the scrape.
+            gallery on import, some projects don&apos;t upload any, or Devpost blocked the scrape.
           </p>
         ) : (
           <ScreenshotGallery shots={shots} name={project.project_name} />
@@ -167,7 +167,7 @@ export function ScreenshotsGithubCard({
             </a>
           </>
         ) : (
-          <p className="text-[13px] text-dim">No repository linked — N/A.</p>
+          <p className="text-[13px] text-dim">No repository linked, N/A.</p>
         )}
       </div>
 

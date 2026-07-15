@@ -3,7 +3,7 @@
  *
  * Note: these paths are authored on a 48×48 grid, so the viewBox must be
  * "0 0 48 48" (the common 24×24 version of this artwork would crop it). The paths
- * carry their own fills, so there's no stroke — sizing comes from `className`.
+ * carry their own fills, so there's no stroke, sizing comes from `className`.
  */
 export function GoogleIcon({ className }: { className?: string }) {
   return (

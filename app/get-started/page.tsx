@@ -31,6 +31,6 @@ export default async function GetStartedPage({
     }
   }
 
-  // Everyone else organizes — judges only ever arrive via an invite.
+  // Everyone else organizes, judges only ever arrive via an invite.
   return <RoleChoice />;
 }

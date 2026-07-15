@@ -8,7 +8,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { colorForId, initials } from "@/lib/utils";
 
 /**
- * Shared judging notes — a live, Google-Docs-style thread for the whole panel.
+ * Shared judging notes, a live, Google-Docs-style thread for the whole panel.
  *
  * Real-time over a Supabase channel keyed by submission:
  *  - comments persist to judge_comments (via /api/comments) and stream to everyone,
@@ -107,7 +107,7 @@ export function CollaborativeNotes({ submissionId }: { submissionId: string }) {
     };
   }, [submissionId]);
 
-  // Realtime channel: presence + typing + new comments. Fully guarded — if Realtime
+  // Realtime channel: presence + typing + new comments. Fully guarded, if Realtime
   // is unavailable/blocked on the project, the notes still work (post + reload), it
   // just won't live-sync. Nothing here can crash the Comments tab.
   useEffect(() => {
@@ -168,7 +168,7 @@ export function CollaborativeNotes({ submissionId }: { submissionId: string }) {
         if (changed) setTyping(Array.from(typingRef.current.values()).map((e) => e.viewer));
       }, 1000);
     } catch {
-      /* realtime unavailable — notes still post + reload, just no live sync */
+      /* realtime unavailable, notes still post + reload, just no live sync */
     }
 
     return () => {
@@ -253,7 +253,7 @@ export function CollaborativeNotes({ submissionId }: { submissionId: string }) {
       <div className="flex flex-col gap-4 p-5">
         {comments.length === 0 && (
           <p className="text-[13px] text-faint">
-            No notes yet. Start the conversation — everyone on the panel sees it live.
+            No notes yet. Start the conversation, everyone on the panel sees it live.
           </p>
         )}
 
@@ -335,7 +335,7 @@ export function CollaborativeNotes({ submissionId }: { submissionId: string }) {
                 void post();
               }
             }}
-            placeholder="Add to the shared notes — everyone on the panel sees this live. Enter to post."
+            placeholder="Add to the shared notes, everyone on the panel sees this live. Enter to post."
             className="min-h-[90px]"
           />
           <div className="mt-2 flex items-center justify-end gap-3">

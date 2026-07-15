@@ -31,9 +31,9 @@ export function ReviewSignals() {
               <SplitWords text="Review signals, not *accusations.*" />
             </h2>
             <Reveal delay={0.2} y={14}>
-              <p className="mb-[18px] max-w-[44ch] text-[17px] leading-[1.6] text-ink/80">
+              <p className="mb-[18px] max-w-[44ch] text-[17px] font-semibold leading-[1.6] text-ink">
                 OpenRubric scans each repo&apos;s GitHub timeline and surfaces what an organizer
-                might want to ask about — framed as a question, never a verdict.
+                might want to ask about. Always framed as a question, never a verdict.
               </p>
             </Reveal>
             <Reveal delay={0.32} y={14}>

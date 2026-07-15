@@ -95,7 +95,7 @@ export function OrganizerDashboard({
               <div className="rounded-[14px] border border-dashed border-line bg-surface px-5 py-10 text-center">
                 <div className="text-[15px] font-semibold">No projects yet</div>
                 <p className="mx-auto mt-1.5 max-w-[42ch] text-[13px] text-dim">
-                  Paste your Devpost gallery above — projects scan and summarize as they come in, and
+                  Paste your Devpost gallery above, projects scan and summarize as they come in, and
                   new submissions keep syncing automatically until your deadline.
                 </p>
               </div>

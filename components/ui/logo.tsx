@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * OpenRubric logo mark — a 2×2 rubric grid with one blue square (brief: "option 2").
+ * OpenRubric logo mark, a 2×2 rubric grid with one blue square (brief: "option 2").
  * Three cells are outlined in `currentColor` so the mark adapts to dark/light
  * surfaces; the one accent cell stays deep blue. No gavel, scales, or judge icon.
  */

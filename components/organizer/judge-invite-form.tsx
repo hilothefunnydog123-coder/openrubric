@@ -7,7 +7,7 @@ import type { DemoJudgeRow } from "@/lib/demo-data";
 
 const COLS = "grid-cols-[1.2fr_1.6fr_1.4fr_1fr]";
 
-/** Custom track dropdown — styled to match the wizard inputs (no native <select>). */
+/** Custom track dropdown, styled to match the wizard inputs (no native <select>). */
 function TrackSelect({
   value,
   options,
@@ -133,7 +133,7 @@ export function JudgeInviteForm({
           >
             <span className="text-[13.5px] font-semibold">{j.name}</span>
             <span className="truncate font-mono text-[11.5px] text-dim">{j.email}</span>
-            <span className="text-[12.5px] text-dim">{j.tracks || "—"}</span>
+            <span className="text-[12.5px] text-dim">{j.tracks || "-"}</span>
             <span className="flex items-center justify-between gap-2 text-[11.5px] text-dim">
               {j.scope}
               <button

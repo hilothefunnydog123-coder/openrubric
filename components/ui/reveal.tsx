@@ -14,9 +14,9 @@ const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const VIEWPORT = { once: true, margin: "0px 0px -12% 0px" } as const;
 
 /**
- * Reveal — a scroll-into-view entrance (fade + gentle rise + focus-pull blur).
+ * Reveal, a scroll-into-view entrance (fade + gentle rise + focus-pull blur).
  *
- * Note: do NOT wrap content that contains a position:fixed overlay — the lingering
+ * Note: do NOT wrap content that contains a position:fixed overlay, the lingering
  * transform would re-anchor it. (The hero's preview panel is intentionally not wrapped.)
  */
 export function Reveal({
@@ -45,7 +45,7 @@ export function Reveal({
 }
 
 /**
- * Stagger / StaggerItem — a container that cascades its children in one after
+ * Stagger / StaggerItem, a container that cascades its children in one after
  * another as it scrolls into view. Wrap each animated child in <StaggerItem>.
  *
  *   <Stagger className="grid ...">
@@ -111,7 +111,7 @@ export function StaggerItem({
 }
 
 /**
- * SplitWords — the cinematic headline treatment: each word rises out of its own
+ * SplitWords, the cinematic headline treatment: each word rises out of its own
  * clip mask with a slight settle, cascading left to right.
  *
  * `*asterisk*` spans render in accent italic (Fraunces italic carries the

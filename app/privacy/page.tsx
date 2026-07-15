@@ -37,21 +37,21 @@ export default function PrivacyPage() {
             <li className={LI}>
               <span className="mt-[3px] text-accent">•</span>
               <span>
-                <strong className="text-ink">Account data</strong> — your name, email, and role
+                <strong className="text-ink">Account data</strong>, your name, email, and role
                 (organizer or judge), used to sign you in and keep roles separate.
               </span>
             </li>
             <li className={LI}>
               <span className="mt-[3px] text-accent">•</span>
               <span>
-                <strong className="text-ink">Event data</strong> — hackathons, submissions, rubrics,
+                <strong className="text-ink">Event data</strong>, hackathons, submissions, rubrics,
                 scores, and comments you create or import, used to operate judging.
               </span>
             </li>
             <li className={LI}>
               <span className="mt-[3px] text-accent">•</span>
               <span>
-                <strong className="text-ink">Imported public data</strong> — when you import from
+                <strong className="text-ink">Imported public data</strong>, when you import from
                 Devpost or scan a public GitHub repo, we process that public information to build
                 submissions and review timelines.
               </span>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
             <li className={LI}>
               <span className="mt-[3px] text-accent">•</span>
               <span>
-                <strong className="text-ink">Feedback you send</strong> — messages submitted through
+                <strong className="text-ink">Feedback you send</strong>, messages submitted through
                 our feedback or contact forms, including any name/email you choose to provide.
               </span>
             </li>
@@ -67,7 +67,7 @@ export default function PrivacyPage() {
 
           <h2 className={H}>How we use it</h2>
           <p className={P}>
-            We use your data only to operate the Service — authenticating you, running judging,
+            We use your data only to operate the Service, authenticating you, running judging,
             generating AI summaries and GitHub reviews, and responding to your feedback. We do not
             sell your data, and we do not use it for advertising.
           </p>
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
 
           <h2 className={H}>Self-hosting</h2>
           <p className={P}>
-            If you self-host {SITE.name}, this policy does not apply to your instance — you control
+            If you self-host {SITE.name}, this policy does not apply to your instance, you control
             your own keys, database, and integrations, and are responsible for your own privacy
             practices toward your users.
           </p>

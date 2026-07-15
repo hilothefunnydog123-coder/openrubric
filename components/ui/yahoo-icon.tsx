@@ -1,6 +1,6 @@
 /**
  * The Yahoo! logo (FontAwesome brand mark, viewBox 0 0 512 512). Single-path, so it
- * fills with `currentColor` — the caller tints it (we use the accent purple).
+ * fills with `currentColor`, the caller tints it (we use the accent purple).
  */
 export function YahooIcon({ className }: { className?: string }) {
   return (
