@@ -57,11 +57,7 @@ export default function HomePage() {
         <LandingHero />
 
         <Reveal>
-          <DemoVideo
-            eyebrow="Product demo"
-            heading="See OpenRubric in action."
-            sub="A quick walkthrough of importing projects, scoring against a shared rubric, and publishing winners."
-          />
+          <DemoVideo eyebrow="Product demo" heading="See OpenRubric in action." />
         </Reveal>
 
         <FeatureGrid

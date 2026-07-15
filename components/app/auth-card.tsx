@@ -359,8 +359,10 @@ export function AuthCard({
                       />
                     </svg>
                   </motion.div>
-                  <h1 className="mb-1 text-[22px] font-semibold tracking-[-0.02em]">Email verified</h1>
-                  <p className="mb-6 text-sm text-dim">
+                  <h1 className="mb-1.5 font-serif text-[28px] font-normal leading-[1.12] tracking-[-0.015em]">
+                    Email verified
+                  </h1>
+                  <p className="mb-6 text-[14.5px] text-ink/70">
                     You&apos;re all set
                     {sentTo ? (
                       <>
@@ -389,10 +391,10 @@ export function AuthCard({
                       <MailCheck className="h-7 w-7" strokeWidth={1.7} />
                     </span>
                   </div>
-                  <h1 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">
-                    Enter verification code
+                  <h1 className="mb-2 font-serif text-[28px] font-normal leading-[1.12] tracking-[-0.015em]">
+                    Check your email
                   </h1>
-                  <p className="mb-4 text-sm leading-relaxed text-dim">
+                  <p className="mb-4 text-[14.5px] leading-relaxed text-ink/70">
                     Enter the 6-digit code we sent to{" "}
                     <span className="font-medium text-ink">{sentTo}</span>.
                   </p>
@@ -472,15 +474,15 @@ export function AuthCard({
             </div>
           ) : (
             <>
-              <h1 className="mb-1.5 text-[22px] font-semibold tracking-[-0.02em]">
-                {isSignUp ? "Create your account" : "Sign in to your hackathon"}
+              <h1 className="mb-2 text-center font-serif text-[30px] font-normal leading-[1.12] tracking-[-0.015em]">
+                {isSignUp ? "Create your account" : "Welcome back"}
               </h1>
-          <p className="mb-6 text-sm text-dim">
+          <p className="mx-auto mb-7 max-w-[34ch] text-center text-[14.5px] leading-[1.55] text-ink/70">
             {isSignUp
               ? invite
-                ? "Accept your judge invitation by creating an account with the invited email."
-                : "Create your account, you'll set up your role during onboarding."
-              : "Continue with your judging account to pick up where you left off."}
+                ? "Accept your judge invitation by signing up with the invited email."
+                : "You'll pick your role during onboarding."
+              : "Sign in and pick up right where you left off."}
           </p>
 
           {invite && isSignUp && (

@@ -60,7 +60,7 @@ export function FeatureGrid({
                 </div>
               )}
               <h3 className="mb-2.5 text-[18px] font-semibold tracking-[-0.01em]">{c.title}</h3>
-              <p className="text-[14px] leading-[1.55] text-dim">{c.body}</p>
+              <p className="text-[15px] leading-[1.6] text-ink/75">{c.body}</p>
             </StaggerItem>
           ))}
         </Stagger>

@@ -27,7 +27,7 @@
     --border: 230 226 217;
     --border-soft: 240 237 229;
     --border-softer: 244 241 234;
-    --accent: 37 99 235; /* restrained deep blue */
+    --accent: 93 95 239; /* vibrant periwinkle-indigo */
   }
 
   /* ---- dark: deep, warm-neutral. Scoped to the dashboard via a `.dark` wrapper
@@ -44,7 +44,7 @@
     --border: 43 45 50;
     --border-soft: 34 36 40;
     --border-softer: 29 30 34;
-    --accent: 109 152 255; /* lifted blue — more legible on dark */
+    --accent: 148 152 255; /* lifted lavender-indigo — more legible on dark */
     color-scheme: dark; /* native scrollbars / date pickers / autofill go dark */
   }
 

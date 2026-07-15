@@ -17,7 +17,7 @@ const buttonVariants = cva(
         outline: "bg-transparent text-ink border border-line hover:border-ink hover:bg-surface/60",
         // Restrained blue accent — used sparingly
         accent:
-          "bg-accent text-accent-fg hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(37,99,235,0.55)]",
+          "bg-accent text-accent-fg hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(93,95,239,0.6)]",
         // Quiet text button
         ghost: "bg-transparent text-dim hover:bg-raised hover:text-ink",
         // On dark sections: white fill

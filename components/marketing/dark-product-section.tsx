@@ -32,7 +32,7 @@ export function DarkProductSection({ id }: { id?: string }) {
               <SplitWords text="A rubric-first judging workspace." />
             </h2>
             <Reveal delay={0.2} y={14}>
-              <p className="mb-[18px] max-w-[46ch] text-[16px] leading-[1.6] text-dim">
+              <p className="mb-[18px] max-w-[46ch] text-[17px] leading-[1.6] text-ink/80">
                 Every score is tied to a criterion. Judges grade against the rubric you define —
                 never a vague gut feeling — and each judge keeps their own record.
               </p>

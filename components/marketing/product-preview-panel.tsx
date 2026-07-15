@@ -415,7 +415,7 @@ export function ProductPreviewPanel() {
                               type="button"
                               onClick={() => setSelectedId(t.id)}
                               className="flex items-center gap-[11px] rounded-lg px-[9px] py-2 text-left transition-colors hover:bg-white/[0.04]"
-                              style={{ background: active ? "rgba(37,99,235,0.10)" : "transparent" }}
+                              style={{ background: active ? "rgba(93,95,239,0.14)" : "transparent" }}
                             >
                               <span
                                 className="w-[18px] font-mono text-[12px]"

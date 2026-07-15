@@ -45,8 +45,8 @@ const config: Config = {
         accent: {
           DEFAULT: v("--accent"),
           fg: "#FFFFFF",
-          soft: "rgba(37,99,235,0.07)",
-          line: "rgba(37,99,235,0.22)",
+          soft: "rgba(93,95,239,0.08)",
+          line: "rgba(93,95,239,0.24)",
         },
 
         // ---- fixed: dark product "screenshot" panels ----

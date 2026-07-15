@@ -25,7 +25,7 @@ export function DemoVideo({
             {heading}
           </h2>
           {sub && (
-            <p className="mx-auto mt-3.5 max-w-[52ch] text-[15px] leading-[1.6] text-dim">{sub}</p>
+            <p className="mx-auto mt-3.5 max-w-[52ch] text-[16px] leading-[1.6] text-ink/75">{sub}</p>
           )}
         </div>
 

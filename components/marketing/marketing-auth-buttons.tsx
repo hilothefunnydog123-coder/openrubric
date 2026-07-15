@@ -16,7 +16,7 @@ export function MarketingAuthButtons() {
   if (!loading && user) {
     const dashboard = user.role === "judge" ? ROUTES.judgeDashboard : ROUTES.organizerDashboard;
     return (
-      <Button asChild size="sm">
+      <Button asChild size="sm" className="rounded-full px-4">
         <Link href={dashboard}>Dashboard</Link>
       </Button>
     );
@@ -24,13 +24,10 @@ export function MarketingAuthButtons() {
 
   return (
     <>
-      <Link
-        href={ROUTES.signIn}
-        className="hidden whitespace-nowrap text-sm text-dim transition-colors hover:text-ink sm:inline"
-      >
-        Sign in
-      </Link>
-      <Button asChild size="sm">
+      <Button asChild variant="secondary" size="sm" className="hidden rounded-full px-4 sm:inline-flex">
+        <Link href={ROUTES.signIn}>Sign in</Link>
+      </Button>
+      <Button asChild variant="accent" size="sm" className="rounded-full px-4">
         <Link href={ROUTES.signUp}>Get started</Link>
       </Button>
     </>
