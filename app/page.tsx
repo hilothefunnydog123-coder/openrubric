@@ -51,7 +51,9 @@ export default function HomePage() {
       <MarketingNav />
       <main>
         {/* Hero is intentionally not wrapped in Reveal — its preview panel uses a
-            position:fixed maximize overlay that a lingering transform would break. */}
+            position:fixed maximize overlay that a lingering transform would break.
+            The sections below choreograph their own entrances (word-by-word
+            headlines, staggered cells, animated meters), so no outer wrappers. */}
         <LandingHero />
 
         <Reveal>
@@ -62,38 +64,28 @@ export default function HomePage() {
           />
         </Reveal>
 
-        <Reveal>
-          <FeatureGrid
-            id="product"
-            eyebrow="Built for real judging rooms"
-            heading="Everything a judging room needs, and nothing it doesn't."
-            items={JUDGING_ROOMS}
-            columns={3}
-          />
-        </Reveal>
+        <FeatureGrid
+          id="product"
+          eyebrow="Built for real judging rooms"
+          heading="Everything a judging room needs, and nothing it doesn't."
+          items={JUDGING_ROOMS}
+          columns={3}
+        />
 
-        <Reveal>
-          <WorkflowStrip />
-        </Reveal>
+        <WorkflowStrip />
 
-        <Reveal>
-          <DarkProductSection id="docs" />
-        </Reveal>
+        <DarkProductSection id="docs" />
 
-        <Reveal>
-          <ReviewSignals />
-        </Reveal>
+        <ReviewSignals />
 
-        <Reveal>
-          <FeatureGrid
-            id="opensource"
-            eyebrow="Open Source By Design"
-            heading="Transparent, self-hostable, and yours to keep."
-            items={OPEN_SOURCE}
-            columns={4}
-            headingClassName="max-w-[20ch]"
-          />
-        </Reveal>
+        <FeatureGrid
+          id="opensource"
+          eyebrow="Open Source By Design"
+          heading="Transparent, self-hostable, and yours to keep."
+          items={OPEN_SOURCE}
+          columns={4}
+          headingClassName="max-w-[20ch]"
+        />
 
         <FinalCta />
       </main>

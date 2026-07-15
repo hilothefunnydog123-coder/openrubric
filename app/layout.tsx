@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { Newsreader, Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import { DemoProvider } from "@/components/app/demo-store";
 import { TranslateWidget } from "@/components/app/translate-widget";
 import { SessionProvider } from "@/lib/session";
 import "./globals.css";
 
-// Editorial serif — landing headlines only.
-const serif = Newsreader({
+// Editorial display serif — headlines only. Variable optical size means it
+// sharpens at text sizes and gains contrast + character at display sizes.
+const serif = Fraunces({
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  axes: ["opsz"],
+  style: ["normal", "italic"],
   variable: "--font-serif",
   display: "swap",
 });

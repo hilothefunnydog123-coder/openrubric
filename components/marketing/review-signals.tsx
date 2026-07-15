@@ -1,5 +1,6 @@
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { TimelineBadge } from "@/components/ui/badge";
+import { Reveal, SplitWords, Stagger, StaggerItem } from "@/components/ui/reveal";
 import type { ReviewPriority } from "@/lib/types";
 
 const SIGNALS: { label: string; priority: ReviewPriority }[] = [
@@ -21,32 +22,45 @@ export function ReviewSignals() {
   return (
     <section className="border-b border-line bg-canvas">
       <div className="container-marketing py-[104px]">
-        <Eyebrow className="mb-5 tracking-[0.16em]">Timeline Review</Eyebrow>
+        <Reveal y={10}>
+          <Eyebrow className="mb-5 tracking-[0.16em]">Timeline Review</Eyebrow>
+        </Reveal>
         <div className="grid items-start gap-16 lg:grid-cols-2">
           <div>
-            <h2 className="mb-[22px] max-w-[16ch] font-serif text-[clamp(30px,4vw,50px)] font-normal leading-[1.05] tracking-[-0.015em]">
-              Review signals, not accusations.
+            <h2 className="mb-[22px] max-w-[16ch] font-serif text-[clamp(30px,4vw,50px)] font-normal leading-[1.08] tracking-[-0.015em]">
+              <SplitWords text="Review signals, not *accusations.*" />
             </h2>
-            <p className="mb-[18px] max-w-[44ch] text-[16px] leading-[1.6] text-dim">
-              OpenRubric scans each repo&apos;s GitHub timeline and surfaces what an organizer might
-              want to ask about — framed as a question, never a verdict.
-            </p>
-            <div className="rounded-r-[10px] border-l-2 border-accent bg-raised px-5 py-3.5">
-              <p className="text-[15px] font-medium leading-[1.5] text-ink">
-                OpenRubric never makes the final call. It gives organizers evidence to review.
+            <Reveal delay={0.2} y={14}>
+              <p className="mb-[18px] max-w-[44ch] text-[16px] leading-[1.6] text-dim">
+                OpenRubric scans each repo&apos;s GitHub timeline and surfaces what an organizer
+                might want to ask about — framed as a question, never a verdict.
               </p>
-            </div>
+            </Reveal>
+            <Reveal delay={0.32} y={14}>
+              <div className="rounded-r-[10px] border-l-2 border-accent bg-raised px-5 py-3.5">
+                <p className="text-[15px] font-medium leading-[1.5] text-ink">
+                  OpenRubric never makes the final call. It gives organizers evidence to review.
+                </p>
+              </div>
+            </Reveal>
           </div>
 
-          <div className="flex flex-col divide-y divide-line overflow-hidden rounded-[16px] border border-line bg-raised">
+          <Stagger
+            delay={0.2}
+            gap={0.07}
+            className="flex flex-col divide-y divide-line overflow-hidden rounded-[16px] border border-line bg-raised"
+          >
             {SIGNALS.map((s) => (
-              <div key={s.label} className="flex items-center gap-3.5 px-5 py-4">
+              <StaggerItem
+                key={s.label}
+                className="flex items-center gap-3.5 px-5 py-4 transition-colors duration-300 hover:bg-surface"
+              >
                 <span className={`h-2 w-2 flex-shrink-0 rounded-full ${DOT[s.priority]}`} />
                 <span className="flex-1 text-[14.5px] text-ink">{s.label}</span>
                 <TimelineBadge priority={s.priority} />
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
         </div>
       </div>
     </section>

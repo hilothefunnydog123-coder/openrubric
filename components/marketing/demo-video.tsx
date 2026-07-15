@@ -30,7 +30,7 @@ export function DemoVideo({
         </div>
 
         <div className="mx-auto max-w-[940px]">
-          <div className="overflow-hidden rounded-[18px] border border-line bg-black shadow-[0_24px_70px_rgba(20,18,14,0.16)]">
+          <div className="overflow-hidden rounded-[18px] border border-line bg-black shadow-[0_24px_70px_rgba(20,18,14,0.16)] transition-shadow duration-500 hover:shadow-[0_32px_90px_rgba(20,18,14,0.24)]">
             <video
               src="/openrubricdemo.mp4"
               controls
