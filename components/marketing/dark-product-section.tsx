@@ -1,5 +1,4 @@
-import { Eyebrow } from "@/components/ui/eyebrow";
-import { Reveal, SplitWords, Stagger, StaggerItem } from "@/components/ui/reveal";
+import { Reveal, Stagger, StaggerItem } from "@/components/ui/reveal";
 import { CountUp, MeterFill } from "@/components/ui/animated-number";
 
 const RUBRIC = [
@@ -19,17 +18,15 @@ const POINTS = [
 
 export function DarkProductSection({ id }: { id?: string }) {
   return (
-    <section id={id} className="border-b border-line bg-canvas text-ink">
-      <div className="container-marketing py-[104px]">
+    <section id={id} className="border-b border-line bg-surface text-ink">
+      <div className="mx-auto w-full max-w-[1180px] px-[clamp(18px,4vw,34px)] py-[clamp(56px,8vw,110px)]">
         <Reveal y={10}>
-          <Eyebrow tone="accent" className="mb-5 tracking-[0.16em]">
-            Live Scoring
-          </Eyebrow>
+          <p className="kicker mb-5 text-accent">01 · Rubric-first</p>
         </Reveal>
         <div className="grid items-center gap-16 lg:grid-cols-[1fr_1.1fr]">
           <div>
-            <h2 className="mb-[22px] font-serif text-[clamp(30px,4vw,50px)] font-normal leading-[1.08] tracking-[-0.015em]">
-              <SplitWords text="A rubric-first judging workspace." />
+            <h2 className="mb-[22px] font-display text-[clamp(1.8rem,4vw,3rem)] font-bold leading-[1.05] tracking-[-0.04em]">
+              A rubric-first judging workspace.
             </h2>
             <Reveal delay={0.2} y={14}>
               <p className="mb-[18px] max-w-[46ch] text-[17px] font-semibold leading-[1.6] text-ink">
@@ -59,7 +56,7 @@ export function DarkProductSection({ id }: { id?: string }) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-serif text-[34px] leading-none">
+                  <div className="font-display text-[34px] font-bold leading-none tracking-[-0.02em] [font-variant-numeric:tabular-nums]">
                     <CountUp value={87} delay={0.3} />
                     <span className="text-[20px] text-[#9A9A96]"> / 100</span>
                   </div>

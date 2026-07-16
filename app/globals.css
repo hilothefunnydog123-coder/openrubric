@@ -16,12 +16,12 @@
 
 @layer base {
   :root {
-    /* ---- light (default): warm, airy ---- */
-    --background: 248 246 241; /* page canvas */
-    --surface: 255 255 255; /* cards / inputs on focus */
-    --surface-raised: 251 250 246; /* raised panels, inputs */
-    --sunken: 240 237 229; /* progress tracks, active nav, segmented control */
-    --foreground: 13 13 13; /* primary text + primary buttons */
+    /* ---- light (default): warm bone + paper (DESIGN.md surface A) ---- */
+    --background: 244 242 236; /* bone: warm page ground */
+    --surface: 252 251 248; /* paper: cards, header */
+    --surface-raised: 250 248 243; /* raised panels, inputs */
+    --sunken: 238 235 228; /* progress tracks, active nav, segmented control */
+    --foreground: 10 10 12; /* ink. Never pure #000 */
     --muted: 26 26 25; /* secondary text — near-black, no washed-out grey */
     --faint: 84 82 78; /* tertiary / mono metadata / placeholders */
     --border: 230 226 217;
@@ -143,6 +143,11 @@
     @apply mx-auto w-full max-w-marketing px-7;
   }
 
+  /* Mono micro kicker (DESIGN.md): act numbers, stat labels, chip text */
+  .kicker {
+    @apply font-mono text-[11.5px] font-bold uppercase tracking-[0.18em];
+  }
+
   /* Animated hairline underline for nav / footer links */
   .link-underline {
     @apply relative transition-colors hover:text-ink;
@@ -235,10 +240,42 @@
   animation: aurora-b 19s ease-in-out infinite alternate;
 }
 
+/* Gentle float for the hero live chip (DESIGN.md: chip only). */
+@keyframes chip-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.chip-float {
+  animation: chip-float 5s ease-in-out infinite;
+}
+
+/* Blink for live dots only. */
+@keyframes live-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.live-blink {
+  animation: live-blink 1.5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-panel-in,
   .aurora-a,
-  .aurora-b {
+  .aurora-b,
+  .chip-float,
+  .live-blink {
     animation: none;
   }
 }
