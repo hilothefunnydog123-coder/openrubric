@@ -1,6 +1,5 @@
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { TimelineBadge } from "@/components/ui/badge";
-import { Reveal, SplitWords, Stagger, StaggerItem } from "@/components/ui/reveal";
+import { Reveal, Stagger, StaggerItem } from "@/components/ui/reveal";
 import type { ReviewPriority } from "@/lib/types";
 
 const SIGNALS: { label: string; priority: ReviewPriority }[] = [
@@ -21,14 +20,14 @@ const DOT: Record<ReviewPriority, string> = {
 export function ReviewSignals() {
   return (
     <section className="border-b border-line bg-canvas">
-      <div className="container-marketing py-[104px]">
+      <div className="mx-auto w-full max-w-[1180px] px-[clamp(18px,4vw,34px)] py-[clamp(56px,8vw,110px)]">
         <Reveal y={10}>
-          <Eyebrow className="mb-5 tracking-[0.16em]">Timeline Review</Eyebrow>
+          <p className="kicker mb-5 text-accent">02 · Timeline review</p>
         </Reveal>
         <div className="grid items-start gap-16 lg:grid-cols-2">
           <div>
-            <h2 className="mb-[22px] max-w-[16ch] font-serif text-[clamp(30px,4vw,50px)] font-normal leading-[1.08] tracking-[-0.015em]">
-              <SplitWords text="Review signals, not *accusations.*" />
+            <h2 className="mb-[22px] max-w-[16ch] font-display text-[clamp(1.8rem,4vw,3rem)] font-bold leading-[1.05] tracking-[-0.04em]">
+              Review signals, <span className="text-accent">not accusations.</span>
             </h2>
             <Reveal delay={0.2} y={14}>
               <p className="mb-[18px] max-w-[44ch] text-[17px] font-semibold leading-[1.6] text-ink">

@@ -1,35 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/session";
 import { ROUTES } from "@/lib/constants";
 
 /**
- * Right-side nav cluster on the landing page. Signed in → a single "Dashboard" button
- * (routed by role); signed out → "Sign in" + "Get started". The session is remembered
- * across visits via Supabase's persisted auth, so returning users skip sign-in.
+ * Right-side nav cluster (DESIGN.md 4.2): sign-in text link + solid ink pill CTA.
+ * Signed in → a single "Dashboard" pill (routed by role).
  */
+const PILL =
+  "inline-flex items-center justify-center rounded-full bg-ink px-[22px] py-[11px] text-[14px] font-bold text-canvas transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(10,10,12,0.5)] active:translate-y-0";
+
 export function MarketingAuthButtons() {
   const { user, loading } = useSession();
 
   if (!loading && user) {
     const dashboard = user.role === "judge" ? ROUTES.judgeDashboard : ROUTES.organizerDashboard;
     return (
-      <Button asChild size="sm" className="rounded-full px-4">
-        <Link href={dashboard}>Dashboard</Link>
-      </Button>
+      <Link href={dashboard} className={PILL}>
+        Dashboard
+      </Link>
     );
   }
 
   return (
     <>
-      <Button asChild variant="secondary" size="sm" className="hidden rounded-full px-4 sm:inline-flex">
-        <Link href={ROUTES.signIn}>Sign in</Link>
-      </Button>
-      <Button asChild variant="accent" size="sm" className="rounded-full px-4">
-        <Link href={ROUTES.signUp}>Get started</Link>
-      </Button>
+      <Link
+        href={ROUTES.signIn}
+        className="hidden whitespace-nowrap text-[14px] font-semibold text-ink transition-opacity hover:opacity-70 sm:inline"
+      >
+        Sign in
+      </Link>
+      <Link href={ROUTES.signUp} className={PILL}>
+        Get started
+      </Link>
     </>
   );
 }

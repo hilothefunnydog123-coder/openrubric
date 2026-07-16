@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Fraunces, Geist, Geist_Mono } from "next/font/google";
 import { DemoProvider } from "@/components/app/demo-store";
 import { TranslateWidget } from "@/components/app/translate-widget";
 import { SessionProvider } from "@/lib/session";
@@ -12,6 +12,14 @@ const serif = Fraunces({
   axes: ["opsz"],
   style: ["normal", "italic"],
   variable: "--font-serif",
+  display: "swap",
+});
+
+// Display grotesk (DESIGN.md: "a grotesk with character, NOT Inter").
+// Landing headlines, stat numbers, card titles, buttons.
+const displayFont = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -66,7 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${sans.variable} ${serif.variable} ${mono.variable}`}
+      className={`${sans.variable} ${serif.variable} ${mono.variable} ${displayFont.variable}`}
     >
       {/* suppressHydrationWarning: browser extensions (Grammarly, password managers)
           inject attributes onto <body> before hydration, harmless, but noisy. */}
