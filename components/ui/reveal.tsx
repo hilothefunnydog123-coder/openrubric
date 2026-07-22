@@ -115,7 +115,8 @@ export function StaggerItem({
  * clip mask with a slight settle, cascading left to right.
  *
  * `*asterisk*` spans render in accent italic (Fraunces italic carries the
- * editorial voice): `text="Everyone can *trust*."`
+ * editorial voice): `text="Everyone can *trust*."` Pass `emClassName` to swap that
+ * treatment — the hero uses it for the sheen gradient instead of italics.
  *
  * Rendered as spans inside whatever element wraps it, so use it inside an
  * <h1>/<h2> to keep semantics + SEO intact.
@@ -125,12 +126,15 @@ export function SplitWords({
   delay = 0,
   gap = 0.045,
   className,
+  emClassName = "italic text-accent",
 }: {
   text: string;
   delay?: number;
   /** Seconds between each word. */
   gap?: number;
   className?: string;
+  /** Classes applied to `*emphasized*` words. */
+  emClassName?: string;
 }) {
   const reduce = useReducedMotion();
 
@@ -160,7 +164,7 @@ export function SplitWords({
         {words.map((w, i) => (
           <Fragment key={i}>
             {i > 0 && " "}
-            <span className={w.em ? "italic text-accent" : undefined}>{w.word}</span>
+            <span className={w.em ? emClassName : undefined}>{w.word}</span>
           </Fragment>
         ))}
       </motion.span>
@@ -185,9 +189,7 @@ export function SplitWords({
           {/* pb/-mb keep descenders (g, y, j) outside the clip without shifting layout */}
           <span aria-hidden className="inline-block overflow-hidden pb-[0.14em] -mb-[0.14em] align-bottom">
             <motion.span
-              className={
-                "inline-block will-change-transform" + (w.em ? " italic text-accent" : "")
-              }
+              className={"inline-block will-change-transform" + (w.em ? " " + emClassName : "")}
               variants={{
                 hidden: { y: "115%", rotate: 2.5 },
                 show: {

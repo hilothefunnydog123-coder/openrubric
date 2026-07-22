@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { ScoreRing } from "@/components/ui/score-ring";
 import { ProfileMenu } from "@/components/app/profile-menu";
 import { ProjectSearchBar, type JudgeFilter } from "./project-search-bar";
 import { ProjectCard } from "./project-card";
@@ -82,12 +83,39 @@ export function JudgeDashboard({
               <ProfileMenu />
             </div>
           </div>
-          <h1 className="mb-1.5 text-[30px] font-semibold tracking-[-0.025em]">Projects to judge</h1>
-          <p className="mb-6 text-[14.5px] text-dim">
-            {projects.length === 0
-              ? "No projects assigned yet, they'll appear here once the organizer imports them."
-              : `Search, open a project, and score it against the rubric. ${projects.length - completed} of ${projects.length} still need your score.`}
-          </p>
+          <div className="mb-6 flex items-end justify-between gap-6">
+            <div>
+              <h1 className="mb-1.5 text-[30px] font-semibold tracking-[-0.025em]">
+                Projects to judge
+              </h1>
+              <p className="text-[14.5px] text-dim">
+                {projects.length === 0
+                  ? "No projects assigned yet, they'll appear here once the organizer imports them."
+                  : `Search, open a project, and score it against the rubric. ${projects.length - completed} of ${projects.length} still need your score.`}
+              </p>
+            </div>
+            {/* How far through the queue this judge is. Fills as cards complete. */}
+            {projects.length > 0 && (
+              <div className="hidden flex-shrink-0 items-center gap-3 sm:flex">
+                <div className="text-right">
+                  <div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-faint">
+                    Your progress
+                  </div>
+                  <div className="mt-1 font-mono text-[13px] font-semibold tabular-nums text-ink">
+                    {completed} / {projects.length} scored
+                  </div>
+                </div>
+                <ScoreRing
+                  value={completed}
+                  max={projects.length}
+                  size={52}
+                  stroke={4}
+                  label={`${Math.round((completed / projects.length) * 100)}`}
+                  tone={completed === projects.length ? "clean" : "accent"}
+                />
+              </div>
+            )}
+          </div>
           <div className="pb-[18px]">
             <ProjectSearchBar search={search} onSearch={setSearch} filter={filter} onFilter={setFilter} />
           </div>

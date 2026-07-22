@@ -46,9 +46,23 @@ export function DarkProductSection({ id }: { id?: string }) {
 
           {/* dark rubric card, a product preview, fixed dark in both themes.
               Bars sweep to their score and the total ticks up on scroll-in. */}
-          <Reveal delay={0.15}>
-            <div className="rounded-[18px] border border-line-dark bg-panel-900 p-6 text-white shadow-lift">
-              <div className="mb-5 flex items-center justify-between border-b border-line-darker pb-4">
+          <Reveal delay={0.15} className="relative">
+            {/* accent bloom behind the card so it reads as lit, not pasted on */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-8 -z-10 rounded-[40px] opacity-70 blur-[60px]"
+              style={{
+                background:
+                  "radial-gradient(60% 55% at 30% 20%, rgba(93,95,239,0.30), transparent 70%)," +
+                  "radial-gradient(50% 50% at 80% 90%, rgba(10,157,99,0.20), transparent 70%)",
+              }}
+            />
+            <div className="relative overflow-hidden rounded-[18px] border border-line-dark bg-panel-900 p-6 text-white shadow-panel">
+              <div
+                aria-hidden
+                className="bg-rubric-grid pointer-events-none absolute inset-0 opacity-60"
+              />
+              <div className="relative mb-5 flex items-center justify-between border-b border-line-darker pb-4">
                 <div>
                   <div className="text-[16px] font-semibold">Lighthouse</div>
                   <div className="mt-[3px] font-mono text-[11px] font-bold text-[#D6D6D2]">
@@ -62,7 +76,7 @@ export function DarkProductSection({ id }: { id?: string }) {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="relative flex flex-col gap-4">
                 {RUBRIC.map((r, i) => (
                   <div key={r.name}>
                     <div className="mb-[7px] flex items-center justify-between">

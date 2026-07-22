@@ -77,6 +77,17 @@ export function SiteFooter() {
           it stores only what organizers import. © {new Date().getFullYear()} OpenRubric.
         </p>
       </div>
+
+      {/* The wordmark as architecture: set at viewport scale, clipped by the page
+          edge and faded out at the bottom. Decorative only — the real logo and
+          site name are already above, so this is aria-hidden. */}
+      <div aria-hidden className="relative overflow-hidden">
+        <div className="mask-fade-b select-none px-[clamp(18px,4vw,34px)]">
+          <span className="block translate-y-[0.18em] whitespace-nowrap text-center font-display text-[clamp(3.5rem,15.5vw,15rem)] font-extrabold leading-[0.78] tracking-[-0.055em] text-ink/[0.07]">
+            OpenRubric
+          </span>
+        </div>
+      </div>
     </footer>
   );
 }
