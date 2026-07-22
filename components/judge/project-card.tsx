@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
+import { ScoreRing } from "@/components/ui/score-ring";
+import { Spotlight } from "@/components/ui/motion-fx";
 import type { ProjectView, SubmissionStatus } from "@/lib/types";
 
 const STATUS_DOT: Record<SubmissionStatus, string> = {
@@ -154,20 +156,43 @@ export function ProjectCard({
   const btnLabel = done ? "Review score" : started ? "Continue grading" : "Grade";
 
   return (
-    <div className="flex flex-col rounded-[14px] border border-line bg-surface p-[18px] transition-all duration-150 hover:-translate-y-0.5 hover:border-ink">
-      <div className="mb-1 flex items-start justify-between gap-2.5">
-        <div className="text-[17px] font-semibold tracking-[-0.01em]">{project.project_name}</div>
-      </div>
-      <div className="mb-4 font-mono text-[11.5px] text-dim">{project.team_name}</div>
-
-      {tracks.length > 0 ? (
-        <TrackSelect submissionId={project.id} tracks={tracks} selectedTrackId={selectedTrackId} />
-      ) : (
-        <div className="mb-4 font-mono text-[11.5px] text-dim">{project.track}</div>
+    <div
+      className={cn(
+        // No overflow-hidden here: TrackSelect's dropdown escapes the card bounds.
+        // The spotlight clips itself with a matching radius instead.
+        "group relative flex flex-col rounded-[14px] border border-line bg-surface p-[18px]",
+        "transition-[transform,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "hover:-translate-y-1 hover:border-ink hover:shadow-lift",
+        "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
       )}
+    >
+      {/* the card lights up under the cursor */}
+      <Spotlight size={360} color="rgba(93,95,239,0.09)" className="rounded-[14px]" />
 
-      <div className="mb-4 flex items-center gap-2">
-        <span className={cn("h-[7px] w-[7px] rounded-full", STATUS_DOT[status])} />
+      <div className="relative mb-1 flex items-start justify-between gap-2.5">
+        <div className="text-[17px] font-semibold tracking-[-0.01em]">{project.project_name}</div>
+        {done && (
+          <ScoreRing value={myScore} max={100} size={40} stroke={3.5} tone="ink" className="mt-px" />
+        )}
+      </div>
+      <div className="relative mb-4 font-mono text-[11.5px] text-dim">{project.team_name}</div>
+
+      <div className="relative">
+        {tracks.length > 0 ? (
+          <TrackSelect submissionId={project.id} tracks={tracks} selectedTrackId={selectedTrackId} />
+        ) : (
+          <div className="mb-4 font-mono text-[11.5px] text-dim">{project.track}</div>
+        )}
+      </div>
+
+      <div className="relative mb-4 flex items-center gap-2">
+        <span
+          className={cn(
+            "h-[7px] w-[7px] rounded-full",
+            STATUS_DOT[status],
+            started && "animate-pulse-dot",
+          )}
+        />
         <span className="text-[13px] text-dim">{STATUS_LABEL[status]}</span>
         {done && (
           <>
@@ -180,11 +205,18 @@ export function ProjectCard({
       <Link
         href={ROUTES.project(project.id)}
         className={cn(
-          "mt-auto w-full rounded-[9px] border py-2.5 text-center text-[13.5px] font-semibold transition-transform hover:-translate-y-px",
+          "relative mt-auto w-full overflow-hidden rounded-[9px] border py-2.5 text-center text-[13.5px] font-semibold transition-transform hover:-translate-y-px motion-reduce:transition-none",
           done ? "border-line bg-surface text-ink" : "border-ink bg-ink text-canvas",
         )}
       >
-        {btnLabel}
+        {/* sheen sweeps across the primary action when the card is hovered */}
+        {!done && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(105deg,transparent,rgba(255,255,255,0.22),transparent)] transition-transform duration-[900ms] ease-out group-hover:translate-x-full motion-reduce:hidden"
+          />
+        )}
+        <span className="relative">{btnLabel}</span>
       </Link>
     </div>
   );

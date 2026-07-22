@@ -148,6 +148,37 @@
     @apply font-mono text-[11.5px] font-bold uppercase tracking-[0.18em];
   }
 
+  /* Display headline with a slow light sweep across the letterforms. Used once,
+     on the hero payoff phrase — the sweep is the reward for reading it. */
+  .text-sheen {
+    background: linear-gradient(
+      100deg,
+      #8f9bff 0%,
+      #c3caff 32%,
+      #ffffff 46%,
+      #c3caff 60%,
+      #8f9bff 100%
+    );
+    background-size: 260% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: sheen 7s linear infinite;
+  }
+
+  /* Hairline rule that fades out at both ends — separates stat cells without
+     drawing a hard box around them. */
+  .rule-fade {
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--border)) 18%,
+      rgb(var(--border)) 82%,
+      transparent
+    );
+  }
+
   /* Animated hairline underline for nav / footer links */
   .link-underline {
     @apply relative transition-colors hover:text-ink;
@@ -184,6 +215,30 @@
   .bg-grain {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: 180px 180px;
+  }
+
+  /* The rubric grid: a faint graph-paper field behind the dark panels. It's the
+     literal shape of the product (rows × criteria), used as ambient texture. */
+  .bg-rubric-grid {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 62px 62px;
+  }
+
+  /* Fade a decorative layer out toward the edges so it never collides with text. */
+  .mask-radial {
+    -webkit-mask-image: radial-gradient(70% 60% at 50% 42%, #000 30%, transparent 100%);
+    mask-image: radial-gradient(70% 60% at 50% 42%, #000 30%, transparent 100%);
+  }
+
+  .mask-fade-x {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
   }
 }
 
@@ -270,12 +325,99 @@
   animation: live-blink 1.5s ease-in-out infinite;
 }
 
+/* A light beam that travels down a vertical hairline — the "scores flowing into
+   the rubric" motif on the hero grid. Transform-only. */
+@keyframes beam-y {
+  0% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(820%);
+    opacity: 0;
+  }
+}
+
+.beam-y {
+  animation: beam-y 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Background-position sweep for .text-sheen. */
+@keyframes sheen {
+  0% {
+    background-position: 160% 0;
+  }
+  100% {
+    background-position: -160% 0;
+  }
+}
+
+/* Marquee track: children are rendered twice, so -50% is one seamless loop. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes marquee-reverse {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 38s linear infinite;
+}
+
+.animate-marquee-reverse {
+  animation: marquee-reverse 38s linear infinite;
+}
+
+/* Conic rim rotation for <ShineBorder>. The centering translate lives inside the
+   keyframes: `transform` is a single property, so an animation that only set
+   `rotate()` would drop the -50%/-50% centering for the duration of the spin. */
+@keyframes rim-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.animate-rim-spin {
+  animation: rim-spin 5s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-panel-in,
   .aurora-a,
   .aurora-b,
   .chip-float,
-  .live-blink {
+  .live-blink,
+  .beam-y,
+  .text-sheen,
+  .animate-marquee,
+  .animate-marquee-reverse,
+  .animate-rim-spin {
     animation: none;
+  }
+
+  /* Without the sweep the clipped text would be invisible — fall back to a flat fill. */
+  .text-sheen {
+    color: #9aa4ff;
+    -webkit-text-fill-color: #9aa4ff;
   }
 }

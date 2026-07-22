@@ -142,12 +142,23 @@ const PROJECTS: Project[] = [
 
 type WindowState = "open" | "minimized" | "closed";
 
-export function ProductPreviewPanel() {
+export function ProductPreviewPanel({
+  onMaximizedChange,
+}: {
+  /** Fires when the green traffic light toggles fullscreen. The hero listens so it
+      can drop its scroll tilt — a transformed ancestor would re-anchor the
+      position:fixed overlay this panel uses when maximized. */
+  onMaximizedChange?: (maximized: boolean) => void;
+} = {}) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(PROJECTS[0].id);
   const [windowState, setWindowState] = useState<WindowState>("open");
   const [maximized, setMaximized] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    onMaximizedChange?.(maximized);
+  }, [maximized, onMaximizedChange]);
 
   // ⌘K / Ctrl+K focuses the search field, like the real app.
   useEffect(() => {

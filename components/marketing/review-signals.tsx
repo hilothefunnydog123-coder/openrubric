@@ -2,12 +2,37 @@ import { TimelineBadge } from "@/components/ui/badge";
 import { Reveal, Stagger, StaggerItem } from "@/components/ui/reveal";
 import type { ReviewPriority } from "@/lib/types";
 
-const SIGNALS: { label: string; priority: ReviewPriority }[] = [
-  { label: "All commits inside the event window", priority: "clean" },
-  { label: "A few commits before the event start", priority: "light" },
-  { label: "Activity after the submission deadline", priority: "needs" },
-  { label: "Older repo with fresh code added during event", priority: "light" },
-  { label: "No useful commit history found", priority: "high" },
+/**
+ * Each signal carries the question an organizer would actually ask. It appears on
+ * hover / focus — the point of the section is that OpenRubric produces questions,
+ * so showing the literal question is the strongest version of the argument.
+ */
+const SIGNALS: { label: string; priority: ReviewPriority; ask: string }[] = [
+  {
+    label: "All commits inside the event window",
+    priority: "clean",
+    ask: "Nothing to ask. This is what a clean timeline looks like.",
+  },
+  {
+    label: "A few commits before the event start",
+    priority: "light",
+    ask: "“Was this scaffolding, or working code you brought in?”",
+  },
+  {
+    label: "Activity after the submission deadline",
+    priority: "needs",
+    ask: "“What changed after you submitted, and does the demo depend on it?”",
+  },
+  {
+    label: "Older repo with fresh code added during event",
+    priority: "light",
+    ask: "“Which part of this repo did you build this weekend?”",
+  },
+  {
+    label: "No useful commit history found",
+    priority: "high",
+    ask: "“Can you walk us through how the project was built?”",
+  },
 ];
 
 const DOT: Record<ReviewPriority, string> = {
@@ -52,11 +77,24 @@ export function ReviewSignals() {
             {SIGNALS.map((s) => (
               <StaggerItem
                 key={s.label}
-                className="flex items-center gap-3.5 px-5 py-4 transition-colors duration-300 hover:bg-surface"
+                className="group px-5 py-4 transition-colors duration-300 hover:bg-surface"
               >
-                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${DOT[s.priority]}`} />
-                <span className="flex-1 text-[14.5px] text-ink">{s.label}</span>
-                <TimelineBadge priority={s.priority} />
+                <div className="flex items-center gap-3.5">
+                  <span
+                    className={`h-2 w-2 flex-shrink-0 rounded-full transition-transform duration-300 group-hover:scale-150 ${DOT[s.priority]}`}
+                  />
+                  <span className="flex-1 text-[14.5px] text-ink">{s.label}</span>
+                  <TimelineBadge priority={s.priority} />
+                </div>
+                {/* The organizer's question, revealed on hover. grid-rows 0fr → 1fr
+                    animates height without hard-coding one. */}
+                <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:grid-rows-[1fr] motion-reduce:transition-none">
+                  <div className="overflow-hidden">
+                    <p className="pl-[22px] pt-2 text-[13px] font-medium italic leading-[1.5] text-ink/60">
+                      {s.ask}
+                    </p>
+                  </div>
+                </div>
               </StaggerItem>
             ))}
           </Stagger>
